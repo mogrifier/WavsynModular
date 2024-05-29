@@ -12,5 +12,15 @@
   "sourceUrl": "https://github.com/mogrifier/wavsynmodular",
   "donateUrl": "https://patreon.com/WavsynModular",
   "changelogUrl": "",
-  "modules": []
+  "modules": [
+    {
+      "slug": "Pleats",
+      "name": "Pleats",
+      "description": "Wavefolder with CV controls",
+      "tags": [
+        "Waveshaper",
+        "Distortion"
+      ]
+    }
+  ]
 }
