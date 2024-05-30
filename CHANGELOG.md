@@ -1,8 +1,11 @@
 # WavsynModular changelog
 In this document, Ctrl means Cmd on Mac.
 
-### 0.0.1 (2024-05-29)
-- bullet 1
-- bullet 2
-- bullet 3
-	- second level indent
+### 0.0.1 (2024-05-30)
+- UI for MVP features is complete
+- CV working well except for BIAS control
+- Sounding good
+    - you can hear how it can act like a filter, chorus, and PWM
+    - overall good results across a wide LFO frequency range on the CV inputs
+	- does produce some extra harmonics and even pops at very high CV input modulation rates
+    - square wave modulation is a little extreme
