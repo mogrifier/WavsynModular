@@ -1,6 +1,11 @@
 # WavsynModular changelog
 In this document, Ctrl means Cmd on Mac.
 
+### 0.0.2 (2024-06-03)
+- BIAS is now undeer control
+- creates interesting effects like echo and extra harmonics coming through
+- best with ARM from a VCO plus some LFO on the CV inputs
+- the controls do iteract with each other to an extent; that is, they are not strictly independent
 ### 0.0.1 (2024-05-30)
 - UI for MVP features is complete
 - CV working well except for BIAS control

@@ -31,6 +31,7 @@ struct Pleats : Module {
 
 
 	//variables for controls
+	int AMOUNT_DEFAULT = 6;
 	float bias = 0.f;
 	float threshold = 0.f;
 	float foldAmount = 0.f;
@@ -38,13 +39,8 @@ struct Pleats : Module {
 	float out = 0.f;
 	float delta = 0.f;
 
-
 	Pleats() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN);
-
-		//configParam(BIAS_PARAM, 0.f, 2.f, 1.f, "Bias", "%", 0, 50);
-		//configParam(SET_PARAM, 0.f, 4.f, 3.f, "Setpoint", "%", 0, 25);
-		//configParam(AMT_PARAM, 0.f, 4.f, 3.f, "Fold Amount", "%", 0, 25);
 
 		//CV
 		configInput(SETCV_INPUT, "Setpoint CV");
@@ -55,39 +51,9 @@ struct Pleats : Module {
 		configInput(AUDIO_INPUT, "Audio");
 		configOutput(AUDIO_OUTPUT, "Folded audio");
 
-
-		configParam(SET_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(AMT_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(BIAS_PARAM, 0.f, 1.f, 0.f, "");
-
-
-
-
-		//is PARAMS_LEN an integer? yes, and value is the number of parameters. 
-		//example: DEBUG("# of parameters %i", PARAMS_LEN);   writex to logs.txt in the plugin deployment directory
-
-
-		/*try some SIMD code from the RACK SDK. returning a vector of values or not? Yes, returns a vector.
-		this does in-order pairwise exponentiation. So 7^2 result is put in result.s[0]
-		must declar using simd::float_4;
-
-		float_4 a = {7.f, 1.f, 2.f, 3.f};
-		float_4 b = {2.f, 2.f, 4.f, 2.f};
-		float_4 result = 0.f;
-		result = pow(a, b);
-		//s is the vector of scalar values.
-		DEBUG("power function %f", result.s[0]);
-
-		
-		example of using library (3rd party)  #include "MathLibrary.h", .h and .cpp file go in
-		src directory and get compiled into the plugin dll
-
-		float x = 7.4;
-    	float y = 99;
-		float value = MathLibrary::Arithmetic::Add(x, y);
-		DEBUG("from math library %f", value);
-
-		*/
+		configParam(SET_PARAM, 0.f, 10.f, 0.f, "Setpoint", " V");
+		configParam(AMT_PARAM, 0.f, 1.f, 0.5f, "Amount", "%", 0, 100);
+		configParam(BIAS_PARAM, 0.f, 5.f, 0.f, "Bias", " V");
 	}
 
 	/*
@@ -106,28 +72,42 @@ struct Pleats : Module {
 
 		//read info about any param, in or out by accessing the array of them by enum name (that correlates to UI)
 
-
-		/*
-		readincoming voltage and multiple by the gain. send to out going voltage
-		*/
 		out = inputs[AUDIO_INPUT].getVoltage(0);
 		delta = 0.f;
 
-		//I believe I need knobs or CV inputs for bias, the threshold, foldAmount. they all work together. Acts like a filter.
-		//read the knob or the CV input liek so: inputs[TUNE_CV + i].isConnected() ? inputs[TUNE_CV + i].getVoltage() : 0.0f
+		//I need knobs or CV inputs for bias, the threshold, foldAmount. they all work together. Acts like a filter.
+		//read the knob or the CV input liek so: inputs[x].isConnected() ? inputs[x].getVoltage() : 0.0f
 
 		bias = inputs[BIASCV_INPUT].isConnected() ? inputs[BIASCV_INPUT].getVoltage() : params[BIAS_PARAM].getValue();
 		threshold = inputs[SETCV_INPUT].isConnected() ? inputs[SETCV_INPUT].getVoltage() : params[SET_PARAM].getValue();
-		foldAmount = inputs[AMTCV_INPUT].isConnected() ? inputs[AMTCV_INPUT].getVoltage() : params[AMT_PARAM].getValue();
+
+		if (inputs[AMTCV_INPUT].isConnected())
+		{
+			//scale to a percentage
+			foldAmount = abs((inputs[AMTCV_INPUT].getVoltage() / 10)) * AMOUNT_DEFAULT;
+		}
+		else
+		{
+			foldAmount = params[AMT_PARAM].getValue() * AMOUNT_DEFAULT;
+		}
 
 		//apply to positive half of cycle
 		if (out + bias > threshold)
 		{
 			delta = (out - foldAmount);
-			out -= delta;
+			if (delta < out)
+			{
+				out -= delta;
+			}
+			else
+			{
+				out = 0.1;
+			}	
 		}
 
 		//what about negative half
+
+		//output <= 0 cause no sound output. D'oh.
 
 		// Set output
 		outputs[AUDIO_OUTPUT].setVoltage(out, 0);
