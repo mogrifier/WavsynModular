@@ -2,7 +2,7 @@
   "slug": "WavsynModular",
   "name": "WavsynModular",
   "version": "2.0.0",
-  "license": "CC-BY-SA-4.0",
+  "license": "GPL-3.0-or-later",
   "brand": "Wavsyn",
   "author": "Erich Izdepski",
   "authorEmail": "wavsyn@gmail.com",
