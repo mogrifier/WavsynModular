@@ -22,6 +22,14 @@
         "Waveshaper",
         "Distortion"
       ]
+    },
+    {
+      "slug": "Strange",
+      "name": "Strange",
+      "description": "Chaotic dual-channel CV generator",
+      "tags": [
+        "sample and hold"
+      ]
     }
   ]
 }
