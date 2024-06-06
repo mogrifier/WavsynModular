@@ -22,7 +22,7 @@ struct Strange : Module {
 
 	Strange() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configParam(RATE_PARAM, 0.001f, 0.99f, 0.5f, "Rate of output change");
+		configParam(RATE_PARAM, -2.f, 2.f, 0.f, "Pulse Rate Factor");
 		configOutput(CVOUT1_OUTPUT, "");
 		configOutput(CVOUT2_OUTPUT, "");
 	}
@@ -36,8 +36,8 @@ struct Strange : Module {
 	float out2 = 0.f;
 	//maybe these should be knobs for seeding values!!
 	float a = 0.85f;
-	float b = 0.81f;  //0.9 was NOT chaotic; 0.8 might be?
-	float k = 0.4f;
+	float b = 0.8f;  //0.9 was NOT chaotic; 0.8 might be?
+	float k = 0.3f;   //0.4f
 	float p = 7.7f;
 	complex<double> z = complex<double>{1, 0};  
 	bool start = true;
@@ -54,10 +54,20 @@ struct Strange : Module {
 		could have a rate control for each output
 
 		add chaos function selector, enums, and a switch statement
+		add a knob for at least one chaos parameter.
+
+		external clock would be good. How's that work?
+
+		minimum rate is one pulse every 20 seconds and runs up to 500 BPM??
+
+		use modulus (which is analogous to euclidean distance ) to derive a value for use in creating a rhythm to the pulses. May need only real part.
+		Or use modulus suqare (z2) which I already calculate.
 
 		*/
 
-		if (count < ((1.0f - rate) * args.sampleRate))
+
+
+		if (count < (pow(10, -1*rate) * args.sampleRate/5))
 		{
 			return;
 		}
@@ -71,10 +81,10 @@ struct Strange : Module {
 			z = ikeda(z);
 		}
 
-		//pull the real and imaginary parts out for sending to the CV outputs
-		outputs[CVOUT1_OUTPUT].setVoltage(z.real(), 0);
+		//pull the real and imaginary parts out for sending to the CV outputs. check for NaN values.
+		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(z.real()) ? z.real() : 0.f, 0);
 		outputs[CVOUT1_OUTPUT].setChannels(1);
-		outputs[CVOUT2_OUTPUT].setVoltage(z.imag(), 0);
+		outputs[CVOUT2_OUTPUT].setVoltage(isfinite(z.imag()) ? z.imag() : 0.f, 0);
 		outputs[CVOUT2_OUTPUT].setChannels(1);
 
 		//DEBUG("# of parameters %i", PARAMS_LEN);
