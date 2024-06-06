@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 #include <complex>
+#include <random>
 using namespace std;
 using namespace math;
 
@@ -36,8 +37,8 @@ struct Strange : Module {
 	float out2 = 0.f;
 	//maybe these should be knobs for seeding values!!
 	float a = 0.85f;
-	float b = 0.8f;  //0.9 was NOT chaotic; 0.8 might be?
-	float k = 0.3f;   //0.4f
+	float b = 0.81f;  //0.9 was NOT chaotic; 0.8 might be?
+	float k = 0.4f;   //0.4f
 	float p = 7.7f;
 	complex<double> z = complex<double>{1, 0};  
 	bool start = true;
@@ -58,19 +59,26 @@ struct Strange : Module {
 
 		external clock would be good. How's that work?
 
-		minimum rate is one pulse every 20 seconds and runs up to 500 BPM??
+		I think I want my own gate output. Just send out the 10v signal of correct duration each cycle. How?
+
+		minimum rate is one pulse every 20 seconds and runs up to 500 BPM?
 
 		use modulus (which is analogous to euclidean distance ) to derive a value for use in creating a rhythm to the pulses. May need only real part.
 		Or use modulus suqare (z2) which I already calculate.
 
+		maybe add a voltage bias to raise the octave as desired? 1 volt per octave.
+
 		*/
 
+		//added a bias value to modulus squared to eliminates pops from low notes
+		double z2 = pow(z.real(), 2) + pow(z.imag(), 2) + 0.5f;
+		
 
-
-		if (count < (pow(10, -1*rate) * args.sampleRate/5))
+		if (count < (pow(10, -1*rate) * z2 * args.sampleRate/5))
 		{
 			return;
 		}
+
 
 		if (start){
 			//runs once (could enable a reset for it) to initialize process
@@ -82,9 +90,9 @@ struct Strange : Module {
 		}
 
 		//pull the real and imaginary parts out for sending to the CV outputs. check for NaN values.
-		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(z.real()) ? z.real() : 0.f, 0);
+		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(z.real()) ? z.real() + 1.f : 0.f, 0);
 		outputs[CVOUT1_OUTPUT].setChannels(1);
-		outputs[CVOUT2_OUTPUT].setVoltage(isfinite(z.imag()) ? z.imag() : 0.f, 0);
+		outputs[CVOUT2_OUTPUT].setVoltage(isfinite(z.imag()) ? z.imag() + 1.f : 0.f, 0);
 		outputs[CVOUT2_OUTPUT].setChannels(1);
 
 		//DEBUG("# of parameters %i", PARAMS_LEN);
