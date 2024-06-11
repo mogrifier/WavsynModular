@@ -124,7 +124,7 @@ struct Strange : Module {
 				case HENON:
 					henon(henonX, henonY);
 					break;
-				case IKEDA:v
+				case IKEDA:
 					ikeda(z);
 					break;
 			}
