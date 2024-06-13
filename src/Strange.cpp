@@ -26,13 +26,14 @@ struct Strange : Module {
 
 	enum ParamId {
 		RATE_PARAM,
-		TUNE_PARAM,
+		BIAS_PARAM,
 		GATE_PARAM,
 		MODE_PARAM,
+		SEED_PARAM,
 		PARAMS_LEN
 	};
 	enum InputId {
-		GATEIN_INPUT,
+		CLOCK_INPUT,
 		INPUTS_LEN
 	};
 	enum OutputId {
@@ -50,10 +51,11 @@ struct Strange : Module {
 		configParam(RATE_PARAM, -2.f, 2.f, 0.f, "Pulse Rate Factor");
 		configOutput(CVOUT1_OUTPUT, "Attractor X");
 		configOutput(CVOUT2_OUTPUT, "Attractor Y");
-		configParam(TUNE_PARAM, -2.f, 2.f, 0.f, "Tuning +/- 2 octaves");
+		configParam(SEED_PARAM, 0.f, 1.f, 0.f, "Modifies the sequence");
+		configParam(BIAS_PARAM, -2.f, 2.f, 0.f, "Adds +/- 2 volts to output");
 		configParam(GATE_PARAM, 0.f, 1.f, 0.5f, "Gate duration", "%", 0.f, 100.f);
 		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Attractor:", {"Henon", "Ikeda"});
-		configInput(GATEIN_INPUT, "Gate");
+		configInput(CLOCK_INPUT, "External Clock");
 		configOutput(GATEOUT_OUTPUT, "Gate");
 	}
 
@@ -71,13 +73,9 @@ struct Strange : Module {
 		/*
 		allow rate to go from super slow to super fast (don't just use sampleRate since that limits speed) . Do some kind of log scaling of rate knob.
 		Becomes an AWG function at audio rates.
-		could have a rate control for each output
-
 		add a knob for at least one chaos parameter.
 		stable and unstable rhythm selector
-		rename TUNE to BIAS
 		make Gate In work
-
 		minimum rate is one pulse every 20 seconds and runs up to 500 BPM?
 
 		*/
@@ -128,7 +126,7 @@ struct Strange : Module {
 		z2 = pow(lastZ.real(), 2) + pow(lastZ.imag(), 2);
 		z = complex<double>{a, 0} + complex<double>{b, 0} * lastZ * pow(2.71828, complex<double>{0, 1} * ((k - p)/(1 + z2)));
 		//pull the real and imaginary parts out for sending to the CV outputs. check for NaN values.
-		double tuning = params[TUNE_PARAM].getValue();
+		double tuning = params[BIAS_PARAM].getValue();
 		//add tuning bias
 		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(z.real()) ? z.real() + tuning : 0.f, 0);
 		outputs[CVOUT1_OUTPUT].setChannels(1);
@@ -143,7 +141,7 @@ struct Strange : Module {
 		henonX = (lastY + 1) - (1.4 * pow(lastX, 2));
 		henonY = 0.3f * lastX;
 		//add tuning bias
-		double tuning = params[TUNE_PARAM].getValue();
+		double tuning = params[BIAS_PARAM].getValue();
 		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(henonX) ? henonX + tuning : 0.f, 0);
 		outputs[CVOUT1_OUTPUT].setChannels(1);
 		outputs[CVOUT2_OUTPUT].setVoltage(isfinite(henonY) ? henonY + tuning : 0.f, 0);
@@ -177,15 +175,16 @@ struct StrangeWidget : ModuleWidget {
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(9.296, 26.194)), module, Strange::RATE_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(31.096, 26.194)), module, Strange::TUNE_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(9.296, 51.894)), module, Strange::GATE_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(30.772, 51.894)), module, Strange::MODE_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(31.096, 26.194)), module, Strange::BIAS_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(9.296, 47.202)), module, Strange::GATE_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(30.772, 47.202)), module, Strange::MODE_PARAM));
+		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(20.32, 68.685)), module, Strange::SEED_PARAM));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(9.869, 85.027)), module, Strange::GATEIN_INPUT));
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(9.869, 93.902)), module, Strange::CLOCK_INPUT));
 
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(31.17, 85.027)), module, Strange::GATEOUT_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(9.869, 106.627)), module, Strange::CVOUT1_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(31.169, 106.627)), module, Strange::CVOUT2_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(31.17, 93.902)), module, Strange::GATEOUT_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(9.869, 114.83)), module, Strange::CVOUT1_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(31.169, 114.83)), module, Strange::CVOUT2_OUTPUT));
 	}
 };
 
