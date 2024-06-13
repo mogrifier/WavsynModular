@@ -52,7 +52,7 @@ struct Strange : Module {
 		configOutput(CVOUT2_OUTPUT, "Attractor Y");
 		configParam(TUNE_PARAM, -2.f, 2.f, 0.f, "Tuning +/- 2 octaves");
 		configParam(GATE_PARAM, 0.f, 1.f, 0.5f, "Gate duration", "%", 0.f, 100.f);
-		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Select attractor", {"Henon", "Ikeda"});
+		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Attractor:", {"Henon", "Ikeda"});
 		configInput(GATEIN_INPUT, "Gate");
 		configOutput(GATEOUT_OUTPUT, "Gate");
 	}
@@ -73,27 +73,12 @@ struct Strange : Module {
 		Becomes an AWG function at audio rates.
 		could have a rate control for each output
 
-		add chaos function selector, enums, and a switch statement
 		add a knob for at least one chaos parameter.
-
-		external clock would be good. How's that work?
-
-		I think I want my own gate output. Just send out the 10v signal of correct duration each cycle. How?
+		stable and unstable rhythm selector
+		rename TUNE to BIAS
+		make Gate In work
 
 		minimum rate is one pulse every 20 seconds and runs up to 500 BPM?
-
-		use modulus (which is analogous to euclidean distance ) to derive a value for use in creating a rhythm to the pulses. May need only real part.
-		Or use modulus suqare (z2) which I already calculate.
-
-		maybe add a voltage bias to raise the octave as desired? 1 volt per octave.
-
-		I think I need gate in and gate out. Gate in for an external clock signal. While high, the CV out signal keeps generating.
-		Gate out is when using internal rhythm. This is like when a sequencer is internally clocked. 
-
-		May want a duration knob (0-100%) for controlling how long a given signal is held. ercent of the calculated total time (which I should cache when able)
-
-		need this: // Switch with 3 modes (values 0 to 2), defaulting to "Hi-fi".
-			configSwitch(QUALITY_PARAM, 0.f, 2.f, 0.f, "Quality", {"Hi-fi", "Mid-fi", "Lo-fi"});	
 
 		*/
 
