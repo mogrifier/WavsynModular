@@ -7,8 +7,7 @@ struct Strange : Module {
 
 	//variables for controls
 	float rate = 0.f;
-	int count = 0;
-	const int SECOND = 44100;
+	float count = 0.0f;
 	//for computing new output value from attractor
 	float out1 = 0.f;
 	float out2 = 0.f;
@@ -23,6 +22,15 @@ struct Strange : Module {
 	float henonX = 1.f;
 	float henonY = 1.f;
 
+	//clock handling
+	bool clockLow = true;
+	bool betweenStates = false;
+	double bpm = 100.0f;
+	double oldBPM = 100.0f;
+	double clockDelay = 0.0f;
+	double ticks = 24000.0f;
+	bool clockTriggered = false;
+	dsp::SchmittTrigger clockTrigger;
 
 	enum ParamId {
 		RATE_PARAM,
@@ -53,7 +61,7 @@ struct Strange : Module {
 		configOutput(CVOUT2_OUTPUT, "Attractor Y");
 		configParam(SEED_PARAM, 0.f, 1.f, 0.f, "Modifies the sequence");
 		configParam(BIAS_PARAM, -2.f, 2.f, 0.f, "Adds +/- 2 volts to output");
-		configParam(GATE_PARAM, 0.f, 1.f, 0.5f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE_PARAM, 0.001f, 1.f, 0.5f, "Gate duration", "%", 0.f, 100.f);
 		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Attractor:", {"Henon", "Ikeda"});
 		configInput(CLOCK_INPUT, "External Clock");
 		configOutput(GATEOUT_OUTPUT, "Gate");
@@ -68,20 +76,48 @@ struct Strange : Module {
 		const int IKEDA = 1;
 
 		count++;
-		rate = params[RATE_PARAM].getValue();
-
 		/*
 		allow rate to go from super slow to super fast (don't just use sampleRate since that limits speed) . Do some kind of log scaling of rate knob.
 		Becomes an AWG function at audio rates.
-		add a knob for at least one chaos parameter.
-		stable and unstable rhythm selector
-		make Gate In work
 		minimum rate is one pulse every 20 seconds and runs up to 500 BPM?
-
 		*/
-
+		rate = params[RATE_PARAM].getValue();
 		double duration = params[GATE_PARAM].getValue();
-		double ticks = (pow(10, -1*rate) * z2 * args.sampleRate/5);
+		double clockVoltage = 0.0f;
+
+		if (inputs[CLOCK_INPUT].isConnected()){
+			//check for clock transition
+			clockVoltage = inputs[CLOCK_INPUT].getVoltage();
+			clockDelay++;
+			clockTriggered = clockTrigger.process(clockVoltage, 0.1f, 2.f);
+			if (!betweenStates && clockTriggered && clockLow) {
+				//clock just went from low to high
+				clockLow = false;
+				//calculate new BPM
+				bpm = (args.sampleRate / clockDelay) * 60.0f;
+				if (abs(bpm - oldBPM) > 1) {
+					//DEBUG("new bpm = %f", bpm);
+					//assume tempo change, not just a small fluctuation
+					//start counting for new bpm from point in time o ftempo change
+					count = 0;
+					oldBPM = bpm;
+				}
+				
+				betweenStates = true;
+				clockDelay = 0;
+			}
+			else if (betweenStates && (clockVoltage == 0.f) && !clockLow) {
+				//clock went from high to low
+				clockLow = true;
+				betweenStates = false;
+			}
+			//compute ticks using BPM
+			ticks = (60.0f/bpm) *  args.sampleRate;
+		}
+		else{
+			//compute ticks using knob settings
+			ticks = (pow(10, -1 * rate) * z2 * args.sampleRate/5);
+		}
 
 		/* this logic also controls if the Gate signal is off or on. */
 		if (count < (duration * ticks))
@@ -94,7 +130,6 @@ struct Strange : Module {
 		}
 		else if ((count > (duration * ticks)) && (count < ticks))
 		{
-			
 			//turn off gate output
 			outputs[GATEOUT_OUTPUT].setVoltage(0.f, 0);
 			outputs[GATEOUT_OUTPUT].setChannels(1);
@@ -102,7 +137,7 @@ struct Strange : Module {
 		}
 		else if (count >= ticks)
 		{
-			//read UI state to determine if using Henon or Ikeda strange attractor.
+			//read UI state to determine if using Henon or Ikeda strange attractor and produce a new output
 			switch ((int)params[MODE_PARAM].getValue()) {
 				case HENON:
 					henon(henonX, henonY);
