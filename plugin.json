@@ -26,7 +26,8 @@
     {
       "slug": "Strange",
       "name": "Strange",
-      "description": "Chaotic dual-channel CV generator",
+      "description": "Chaotic dual-channel CV and Sample & Hold generator",
+      "manualUrl": "https://erichizdepski.wordpress.com/wavsynmodular-manual",
       "tags": [
         "sample and hold"
       ]
