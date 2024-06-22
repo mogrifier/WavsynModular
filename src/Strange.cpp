@@ -14,7 +14,7 @@ struct Strange : Module {
 	float out2 = 0.f;
 	//maybe these should be knobs for seeding values!!
 	float a = 0.85f;
-	float b = 0.81f;  //0.9 was NOT chaotic; 0.8 might be?
+	// replaced with SEED parameter float b = 0.81f;  //0.9 was NOT chaotic; 0.8 might be?
 	float k = 0.4f;   //0.4f
 	float p = 7.7f;
 	complex<double> z = complex<double>{0, 0};  
@@ -51,7 +51,7 @@ struct Strange : Module {
 		configParam(RATE_PARAM, -2.f, 2.f, 0.f, "Pulse Rate Factor");
 		configOutput(CVOUT1_OUTPUT, "Attractor X");
 		configOutput(CVOUT2_OUTPUT, "Attractor Y");
-		configParam(SEED_PARAM, 0.f, 1.f, 0.f, "Modifies the sequence");
+		configParam(SEED_PARAM, 0.f, 1.f, 0.5f, "Modifies the sequence");
 		configParam(BIAS_PARAM, -2.f, 2.f, 0.f, "Adds +/- 2 volts to output");
 		configParam(GATE_PARAM, 0.f, 1.f, 0.5f, "Gate duration", "%", 0.f, 100.f);
 		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Attractor:", {"Henon", "Ikeda"});
@@ -105,6 +105,11 @@ struct Strange : Module {
 			//read UI state to determine if using Henon or Ikeda strange attractor.
 			switch ((int)params[MODE_PARAM].getValue()) {
 				case HENON:
+				//can get stuck so this will reset it automatically
+					if (henonX == 0 && henonY == 0){
+						henonX = 1.f;
+						henonY = 1.f;
+					}
 					henon(henonX, henonY);
 					break;
 				case IKEDA:
@@ -124,27 +129,33 @@ struct Strange : Module {
 		//compute the next z based on the input value
 		//z2 is the complex modulus squared
 		z2 = pow(lastZ.real(), 2) + pow(lastZ.imag(), 2);
-		z = complex<double>{a, 0} + complex<double>{b, 0} * lastZ * pow(2.71828, complex<double>{0, 1} * ((k - p)/(1 + z2)));
+		//replace a constant with a SEED derived value that makes sense
+		float adjuster = params[SEED_PARAM].getValue() * 0.3f + 0.7f;
+		z = complex<double>{a, 0} + complex<double>{adjuster, 0} * lastZ * pow(2.71828, complex<double>{0, 1} * ((k - p)/(1 + z2)));
 		//pull the real and imaginary parts out for sending to the CV outputs. check for NaN values.
-		double tuning = params[BIAS_PARAM].getValue();
-		//add tuning bias
-		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(z.real()) ? z.real() + tuning : 0.f, 0);
-		outputs[CVOUT1_OUTPUT].setChannels(1);
-		outputs[CVOUT2_OUTPUT].setVoltage(isfinite(z.imag()) ? z.imag() + tuning : 0.f, 0);
-		outputs[CVOUT2_OUTPUT].setChannels(1);
+		setOutput(z.real(), z.imag());
 	}
 
 
 	void henon(float lastX, float lastY){
 		//set z2 to default
 		z2 = 1;
-		henonX = (lastY + 1) - (1.4 * pow(lastX, 2));
+		//replace a constant with a SEED derived value that makes sense
+		float adjuster = params[SEED_PARAM].getValue() * 0.3f + 0.7f;
+		henonX = (lastY + adjuster) - (1.4 * pow(lastX, 2));
 		henonY = 0.3f * lastX;
-		//add tuning bias
-		double tuning = params[BIAS_PARAM].getValue();
-		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(henonX) ? henonX + tuning : 0.f, 0);
+		setOutput(henonX, henonY);
+	}
+
+
+	/* handles values from all the strange attractor functions, checks them for Nan, add in the bias value,
+		and sends to the output channels*/
+	void setOutput(float x, float y){
+		//add  bias
+		double bias = params[BIAS_PARAM].getValue();
+		outputs[CVOUT1_OUTPUT].setVoltage(isfinite(x) ? x + bias : 0.f, 0);
 		outputs[CVOUT1_OUTPUT].setChannels(1);
-		outputs[CVOUT2_OUTPUT].setVoltage(isfinite(henonY) ? henonY + tuning : 0.f, 0);
+		outputs[CVOUT2_OUTPUT].setVoltage(isfinite(y) ? y + bias : 0.f, 0);
 		outputs[CVOUT2_OUTPUT].setChannels(1);
 	}
 
