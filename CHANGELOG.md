@@ -14,3 +14,9 @@ In this document, Ctrl means Cmd on Mac.
     - overall good results across a wide LFO frequency range on the CV inputs
 	- does produce some extra harmonics and even pops at very high CV input modulation rates
     - square wave modulation is a little extreme
+
+### Version 2.0.0 release
+- PLEATS and STRANGE have been published to the VCV Library
+### Version 2.0.1 new module work
+- TRIP basic skeleton UI added
+
