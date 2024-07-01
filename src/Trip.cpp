@@ -3,6 +3,11 @@
 
 struct Trip : Module {
 	enum ParamId {
+		OCTAVE_PARAM,
+		MODULO_PARAM,
+		SKIP_PARAM,
+		REVERSAL_PARAM,
+		LENGTH_PARAM,
 		MODE_PARAM,
 		VOLTS1_PARAM,
 		VOLTS2_PARAM,
@@ -20,17 +25,12 @@ struct Trip : Module {
 		SPACE6_PARAM,
 		SPACE7_PARAM,
 		SPACE8_PARAM,
-		OCTAVE_PARAM,
 		GATE1_PARAM,
-		MODULO_PARAM,
 		GATE2_PARAM,
-		SKIP_PARAM,
 		GATE3_PARAM,
 		GATE4_PARAM,
-		REVERSAL_PARAM,
 		GATE5_PARAM,
 		GATE6_PARAM,
-		LENGTH_PARAM,
 		GATE7_PARAM,
 		GATE8_PARAM,
 		PARAMS_LEN
@@ -59,6 +59,11 @@ struct Trip : Module {
 
 	Trip() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
+		configParam(OCTAVE_PARAM, 0.f, 1.f, 0.f, "");
+		configParam(MODULO_PARAM, 0.f, 1.f, 0.f, "");
+		configParam(SKIP_PARAM, 0.f, 1.f, 0.f, "");
+		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "");
+		configParam(LENGTH_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(MODE_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(VOLTS1_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(VOLTS2_PARAM, 0.f, 1.f, 0.f, "");
@@ -76,17 +81,12 @@ struct Trip : Module {
 		configParam(SPACE6_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(SPACE7_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(SPACE8_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(OCTAVE_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE1_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(MODULO_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE2_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SKIP_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE3_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE4_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE5_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE6_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(LENGTH_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE7_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE8_PARAM, 0.f, 1.f, 0.f, "");
 		configInput(RESET_INPUT, "");
@@ -118,50 +118,50 @@ struct TripWidget : ModuleWidget {
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(21.336, 31.089)), module, Trip::MODE_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.977, 46.434)), module, Trip::VOLTS1_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.345, 46.434)), module, Trip::VOLTS2_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.712, 46.434)), module, Trip::VOLTS3_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(63.079, 46.434)), module, Trip::VOLTS4_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.447, 46.434)), module, Trip::VOLTS5_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.814, 46.434)), module, Trip::VOLTS6_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(100.181, 46.434)), module, Trip::VOLTS7_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.548, 46.434)), module, Trip::VOLTS8_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.929, 65.484)), module, Trip::SPACE1_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.296, 65.484)), module, Trip::SPACE2_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.664, 65.484)), module, Trip::SPACE3_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(63.031, 65.484)), module, Trip::SPACE4_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.398, 65.484)), module, Trip::SPACE5_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.766, 65.484)), module, Trip::SPACE6_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(100.133, 65.484)), module, Trip::SPACE7_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.5, 65.484)), module, Trip::SPACE8_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(1.323, 81.889)), module, Trip::OCTAVE_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.4, 81.889)), module, Trip::GATE1_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.549, 81.889)), module, Trip::MODULO_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(37.767, 81.889)), module, Trip::GATE2_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(49.775, 81.889)), module, Trip::SKIP_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.135, 81.889)), module, Trip::GATE3_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.502, 81.889)), module, Trip::GATE4_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(74.002, 81.889)), module, Trip::REVERSAL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(74.869, 81.889)), module, Trip::GATE5_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.236, 81.889)), module, Trip::GATE6_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(98.228, 81.889)), module, Trip::LENGTH_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.604, 81.889)), module, Trip::GATE7_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(111.971, 81.889)), module, Trip::GATE8_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(12.18, 22.307)), module, Trip::OCTAVE_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(36.406, 22.307)), module, Trip::MODULO_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(60.632, 22.307)), module, Trip::SKIP_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(84.859, 22.307)), module, Trip::REVERSAL_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(109.085, 22.307)), module, Trip::LENGTH_PARAM));
+		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(21.336, 43.524)), module, Trip::MODE_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 59.928)), module, Trip::VOLTS1_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 59.928)), module, Trip::VOLTS2_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 59.928)), module, Trip::VOLTS3_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.814, 59.928)), module, Trip::VOLTS4_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.181, 59.928)), module, Trip::VOLTS5_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 59.928)), module, Trip::VOLTS6_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 59.928)), module, Trip::VOLTS7_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 59.928)), module, Trip::VOLTS8_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 77.344)), module, Trip::SPACE1_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 77.344)), module, Trip::SPACE2_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 77.344)), module, Trip::SPACE3_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.814, 77.344)), module, Trip::SPACE4_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.181, 77.344)), module, Trip::SPACE5_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 77.344)), module, Trip::SPACE6_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 77.344)), module, Trip::SPACE7_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 77.344)), module, Trip::SPACE8_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 94.76)), module, Trip::GATE1_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 94.76)), module, Trip::GATE2_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 94.76)), module, Trip::GATE3_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.814, 94.76)), module, Trip::GATE4_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.181, 94.76)), module, Trip::GATE5_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 94.76)), module, Trip::GATE6_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 94.76)), module, Trip::GATE7_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 94.76)), module, Trip::GATE8_PARAM));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(58.333, 41.273)), module, Trip::RESET_INPUT));
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(58.333, 41.473)), module, Trip::RESET_INPUT));
 
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(72.162, 24.34)), module, Trip::ALLCVOUT_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(90.154, 24.34)), module, Trip::GATEOUT_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(108.145, 24.34)), module, Trip::TRIGGER_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(25.4, 81.889)), module, Trip::CV1_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(37.767, 81.889)), module, Trip::CV2_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(50.135, 81.889)), module, Trip::CV3_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(62.502, 81.889)), module, Trip::CV4_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(74.869, 81.889)), module, Trip::CV5_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(87.236, 81.889)), module, Trip::CV6_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(99.604, 81.889)), module, Trip::CV7_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(111.971, 81.889)), module, Trip::CV8_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(76.005, 41.473)), module, Trip::ALLCVOUT_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(93.997, 41.473)), module, Trip::GATEOUT_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(111.989, 41.473)), module, Trip::TRIGGER_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(25.712, 112.107)), module, Trip::CV1_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(38.079, 112.107)), module, Trip::CV2_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(50.447, 112.107)), module, Trip::CV3_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(62.814, 112.107)), module, Trip::CV4_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(75.181, 112.107)), module, Trip::CV5_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(87.549, 112.107)), module, Trip::CV6_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(99.916, 112.107)), module, Trip::CV7_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(112.283, 112.107)), module, Trip::CV8_OUTPUT));
 	}
 };
 
