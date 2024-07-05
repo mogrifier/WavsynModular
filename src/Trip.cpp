@@ -59,48 +59,72 @@ struct Trip : Module {
 
 	Trip() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configParam(OCTAVE_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(MODULO_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SKIP_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(LENGTH_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(MODE_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS1_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS2_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS3_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS4_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS5_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS6_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS7_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(VOLTS8_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE1_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE2_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE3_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE4_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE5_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE6_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE7_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(SPACE8_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE1_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE2_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE3_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE4_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE5_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE6_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE7_PARAM, 0.f, 1.f, 0.f, "");
-		configParam(GATE8_PARAM, 0.f, 1.f, 0.f, "");
-		configInput(RESET_INPUT, "");
-		configOutput(ALLCVOUT_OUTPUT, "");
-		configOutput(GATEOUT_OUTPUT, "");
-		configOutput(TRIGGER_OUTPUT, "");
-		configOutput(CV1_OUTPUT, "");
-		configOutput(CV2_OUTPUT, "");
-		configOutput(CV3_OUTPUT, "");
-		configOutput(CV4_OUTPUT, "");
-		configOutput(CV5_OUTPUT, "");
-		configOutput(CV6_OUTPUT, "");
-		configOutput(CV7_OUTPUT, "");
-		configOutput(CV8_OUTPUT, "");
+
+		//On 0, the random setting is OFF. Greater than zero it represents the chance 
+		//for each step for the random event to happen, modifiying the step or the sequence
+
+		//restrict values to whole numbers
+		configSwitch(OCTAVE_PARAM, -3.f, 3.f, 0.f, "Add to VOLTS for each step", {"-3", "-2", "-1", "0", "1", "2", "3"});
+
+		//causes a shift in the pattern by changing where it starts- maybe a switch with settings 1-8?
+		configSwitch(MODULO_PARAM, 1.f, 8.f, 1.f, "Starting Step:", {"1", "2", "3", "4", "5", "6", "7", "8"});
+
+		//skip a step (gate out is zero). Same chance for every step.
+		configParam(SKIP_PARAM, 0.f, 1.f, 0.f, "Chance to skip a step");
+
+		//start a 8 instead of 1
+		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "Chance to reverse sequence");
+
+		//maybe a switch with settings 1-8?. Adjust SPACE so the times still add up to 100%
+		configSwitch(LENGTH_PARAM, 1.f, 8.f, 8.f, "Sequence Length:", {"1", "2", "3", "4", "5", "6", "7", "8"});
+
+		//multiple switch positions- does quantization of VOLTS or not
+		configSwitch(MODE_PARAM, 0.f, 3.f, 0.f, "Voltage Mode:", {"Continuous", "12-Tone", "Quartertone"});
+
+		//CV output is simply called VOLTS since it cud be a pitch or a control signal but both are VOLTS
+		configParam(VOLTS1_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS2_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS3_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS4_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS5_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS6_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS7_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS8_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+
+		//this parameter specifies the percentage of 1 BAR that a step uses. Must always total 100%,
+		//so turning one know adjusts the others to compensate.
+		configParam(SPACE1_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE2_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE3_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE4_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE5_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE6_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE7_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE8_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+
+		//each step is given an amount of by its SPACE setting. Gate governs how much of the SPACE is used.
+		configParam(GATE1_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE2_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE3_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE4_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE5_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE6_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE7_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE8_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+
+		configInput(RESET_INPUT, "Reset the sequencer at Step 1 on a trigger");
+		configOutput(ALLCVOUT_OUTPUT, "All steps' output");
+		configOutput(GATEOUT_OUTPUT, "Gate signal for each step");
+		configOutput(TRIGGER_OUTPUT, "Trigger output at start of each step");
+
+		configOutput(CV1_OUTPUT, "Step 1 Individual CV Out");
+		configOutput(CV2_OUTPUT, "Step 2 Individual CV Out");
+		configOutput(CV3_OUTPUT, "Step 3 Individual CV Out");
+		configOutput(CV4_OUTPUT, "Step 4 Individual CV Out");
+		configOutput(CV5_OUTPUT, "Step 5 Individual CV Out");
+		configOutput(CV6_OUTPUT, "Step 6 Individual CV Out");
+		configOutput(CV7_OUTPUT, "Step 7 Individual CV Out");
+		configOutput(CV8_OUTPUT, "Step 8 Individual CV Out");
 	}
 
 	void process(const ProcessArgs& args) override {
