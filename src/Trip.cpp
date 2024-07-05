@@ -36,6 +36,7 @@ struct Trip : Module {
 		PARAMS_LEN
 	};
 	enum InputId {
+		CLOCK_INPUT,
 		RESET_INPUT,
 		INPUTS_LEN
 	};
@@ -89,6 +90,7 @@ struct Trip : Module {
 		configParam(GATE6_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE7_PARAM, 0.f, 1.f, 0.f, "");
 		configParam(GATE8_PARAM, 0.f, 1.f, 0.f, "");
+		configInput(CLOCK_INPUT, "");
 		configInput(RESET_INPUT, "");
 		configOutput(ALLCVOUT_OUTPUT, "");
 		configOutput(GATEOUT_OUTPUT, "");
@@ -123,7 +125,7 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(60.632, 22.307)), module, Trip::SKIP_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(84.859, 22.307)), module, Trip::REVERSAL_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(109.085, 22.307)), module, Trip::LENGTH_PARAM));
-		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(21.336, 43.524)), module, Trip::MODE_PARAM));
+		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(12.18, 43.524)), module, Trip::MODE_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 59.928)), module, Trip::VOLTS1_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 59.928)), module, Trip::VOLTS2_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 59.928)), module, Trip::VOLTS3_PARAM));
@@ -149,6 +151,7 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 94.76)), module, Trip::GATE7_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 94.76)), module, Trip::GATE8_PARAM));
 
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(37.57, 41.473)), module, Trip::CLOCK_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(58.333, 41.473)), module, Trip::RESET_INPUT));
 
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(76.005, 41.473)), module, Trip::ALLCVOUT_OUTPUT));
