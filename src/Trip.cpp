@@ -10,6 +10,8 @@ struct Trip : Module {
 	float voltsInteger = 0;
 	float space = 0.f;
 	float gate = 0.f;
+	float skipChance = 0.f;
+	float skipped = false;
 	std::string step = "";
 	int currentStep = 1;
 	int stepSpace = 0;
@@ -281,6 +283,8 @@ struct Trip : Module {
 		//step duration is a fraction of the total allocated space for the step
 		stepDuration = params[getGateEnum(GATE + std::to_string(currentStep))].getValue() * stepSpace;
 
+
+
 		/* this logic also controls if the Gate signal is off or on. */
 		
 		/*
@@ -288,7 +292,7 @@ struct Trip : Module {
 		Need to track count for each step maybe, plus a total count. 
 		*/
 
-		if (stepCount <= stepDuration)
+		if (!skipped && stepCount <= stepDuration)
 		{
 			//what is happening here is that the output "sticks" on the last value until a new value is created. 
 			//keep gate on
@@ -307,6 +311,16 @@ struct Trip : Module {
 		if (stepCount >= stepSpace){
 			stepCount = 0;
 			currentStep++;
+			//once you skip a step, it is skipped for the duration (Space) of the step. only check at beggining of each step.
+			if (random::uniform() <= params[SKIP_PARAM].getValue()) {
+				skipped = true;
+				//DEBUG("skipped = %f", 1.f);
+			}
+			else {
+				skipped = false;
+				//DEBUG("skipped = %f", 0.f);
+			}
+			
 		}
 		
 		if (count >= ticks) {
