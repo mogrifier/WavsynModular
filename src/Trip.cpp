@@ -4,7 +4,10 @@ using namespace math;
 
 struct Trip : Module {
 	int STEPS = 8;
+	int mode = 0;
 	float volts = 0.f;
+	float voltsFraction = 0.f;
+	float voltsInteger = 0;
 	float space = 0.f;
 	float gate = 0.f;
 	std::string step = "";
@@ -12,7 +15,7 @@ struct Trip : Module {
 	int stepSpace = 0;
 	int stepDuration = 0;
 
-	float octave = 0.f;
+	int octave = 0;
 	double duration = 0.f;
 	int count = 0;
 	int stepCount = 0;
@@ -31,10 +34,17 @@ struct Trip : Module {
 	dsp::SchmittTrigger trigger;
 	bool reset = false;
 
+	//for enum use
 	std::string VOLTS = "VOLTS";
 	std::string SPACE = "SPACE";
 	std::string GATE = "GATE";
 	std::string CV = "CV";
+
+	//for quantization- is this right? zero start or 1 end?? or both? 13 notes are an octave.
+	const float twelveTone[13] = {0.f, 0.083f, 0.167f, 0.25f, 0.333f, 0.417f, 0.5f, 0.583f, 0.666f, 0.75f, 0.833f, 0.917f, 1.f };
+	const float quarterTone[25] = {0.f, 0.0417f, 0.083f, 0.125f, 0.167f, 0.208, 0.25f, 0.292f, 0.333f, 0.375f, 0.417f, 0.458f, 0.5f,
+	 	0.542f, 0.583f, 0.625f, 0.666f, 0.708f, 0.75f, 0.792f, 0.833f, 0.875f, 0.917f, 0.958f, 1.f};
+
 
 	enum ParamId {
 		OCTAVE_PARAM,
@@ -114,7 +124,7 @@ struct Trip : Module {
 		configSwitch(LENGTH_PARAM, 1, 8, 8, "Sequence Length:", {"1", "2", "3", "4", "5", "6", "7", "8"});
 
 		//multiple switch positions- does quantization of VOLTS or not
-		configSwitch(MODE_PARAM, 0.f, 3.f, 0.f, "Voltage Mode:", {"Continuous", "12-Tone", "Quartertone"});
+		configSwitch(MODE_PARAM, 0.f, 2.f, 0.f, "Quantization:", {"None", "12-Tone", "Quartertone"});
 
 		//CV output is simply called VOLTS since it cud be a pitch or a control signal but both are VOLTS
 		configParam(VOLTS1_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
@@ -236,12 +246,38 @@ struct Trip : Module {
 
 
 		//set the current step output to its output and to all cv ouput
-		int octave = params[OCTAVE_PARAM].getValue();
-		outputs[getOuputEnum(CV + std::to_string(currentStep))].setVoltage(params[getVoltsEnum(VOLTS + std::to_string(currentStep))].getValue() + octave);
-		outputs[ALLCVOUT_OUTPUT].setVoltage(params[getVoltsEnum(VOLTS + std::to_string(currentStep))].getValue() + octave);
+		octave = params[OCTAVE_PARAM].getValue();
+		mode = params[MODE_PARAM].getValue();
+		volts = params[getVoltsEnum(VOLTS + std::to_string(currentStep))].getValue();
+		//also sets voltInteger
+		voltsFraction = modf(volts, &voltsInteger);
+
+		//DEBUG("int = %f fraction = %f", voltsInteger, voltsFraction);
+		//DEBUG("mode = %d", mode);
+		//switch on mode to perform quantization of output (or not)
+		switch (mode) {
+			case 0:
+			//do nothing since volts is already accurate
+			//DEBUG("mode = %d", 0);
+			break;
+			case 1:
+			//12 tone
+			volts = quantize12tone(voltsFraction) + voltsInteger;
+			break;
+			case 2:
+			//quartertone
+			volts = quantize24tone(voltsFraction) + voltsInteger;
+			break;
+		}
+
+		//DEBUG("volts = %f", volts);
+
+		//add in the octave value bias
+		outputs[getOuputEnum(CV + std::to_string(currentStep))].setVoltage(volts + octave);
+		outputs[ALLCVOUT_OUTPUT].setVoltage(volts + octave);
 
 		//calculate duration of currentStep and total space for the step in number of samples
-		stepSpace = params[getSpaceEnum(SPACE+ std::to_string(currentStep))].getValue() * ticks;
+		stepSpace = params[getSpaceEnum(SPACE + std::to_string(currentStep))].getValue() * ticks;
 		//step duration is a fraction of the total allocated space for the step
 		stepDuration = params[getGateEnum(GATE + std::to_string(currentStep))].getValue() * stepSpace;
 
@@ -308,10 +344,41 @@ int getStep(){
 	return step;
 }
 
+//quantize- 
+float quantize12tone(float v) {
+	//iterate the 12 tone array and find closest value. 
+	float min = 1.f;
+	float qVal = 0.f;
+	for (int i = 0; i < 13; i++){
+		if (abs(v - twelveTone[i]) < min) {
+			min = abs(v - twelveTone[i]);
+			//DEBUG("mode = %f", 12.f);
+			//found new minimum
+			qVal = twelveTone[i];
+		} 
+	}
+	return qVal;
+}
+
+//quantize- 
+float quantize24tone(float v) {
+	//iterate the 24 tone array and find closest value. 
+	float min = 1.f;
+	float qVal = 0;
+	for (int i = 0; i < 25; i++) {
+		if (abs(v - quarterTone[i]) < min) {
+			min = abs(v - quarterTone[i]);
+			//DEBUG("min = %f", min);
+			//found new minimum
+			qVal = quarterTone[i];
+		}
+	}
+	return qVal;
+}
 
 //bunch of utility methods to make it easy to use a string built in a loop to get 
 //corresponding enum values
-ParamId getVoltsEnum(const std::string& lookup) {
+ParamId getVoltsEnum(const std::string lookup) {
     if (lookup == "VOLTS1") return ParamId::VOLTS1_PARAM;
     else if (lookup == "VOLTS2") return ParamId::VOLTS2_PARAM;
     else if (lookup == "VOLTS3") return ParamId::VOLTS3_PARAM;
@@ -323,7 +390,7 @@ ParamId getVoltsEnum(const std::string& lookup) {
 	else DEBUG("volts = %s", lookup.c_str());
 }
 
-ParamId getSpaceEnum(const std::string& lookup) {
+ParamId getSpaceEnum(const std::string lookup) {
 	if (lookup == "SPACE1") return ParamId::SPACE1_PARAM;
     else if (lookup == "SPACE2") return ParamId::SPACE2_PARAM;
     else if (lookup == "SPACE3") return ParamId::SPACE3_PARAM;
@@ -335,7 +402,7 @@ ParamId getSpaceEnum(const std::string& lookup) {
 	else DEBUG("space = %s", lookup.c_str());
 }
 
-ParamId getGateEnum(const std::string& lookup) {
+ParamId getGateEnum(const std::string lookup) {
 	if (lookup == "GATE1") return ParamId::GATE1_PARAM;
     else if (lookup == "GATE2") return ParamId::GATE2_PARAM;
     else if (lookup == "GATE3") return ParamId::GATE3_PARAM;
@@ -347,7 +414,7 @@ ParamId getGateEnum(const std::string& lookup) {
 	else DEBUG("gate = %s", lookup.c_str());
 }
 
-OutputId getOuputEnum(const std::string& lookup) {
+OutputId getOuputEnum(const std::string lookup) {
     if (lookup == "CV1") return OutputId::CV1_OUTPUT;
     else if (lookup == "CV2") return OutputId::CV2_OUTPUT;
     else if (lookup == "CV3") return OutputId::CV3_OUTPUT;
@@ -361,9 +428,6 @@ OutputId getOuputEnum(const std::string& lookup) {
 
 
 };
-
-
-
 
 
 struct TripWidget : ModuleWidget {
