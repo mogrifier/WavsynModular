@@ -41,6 +41,7 @@ struct Trip : Module {
 	std::string SPACE = "SPACE";
 	std::string GATE = "GATE";
 	std::string CV = "CV";
+	std::string STEP = "STEP";
 
 	//for quantization- is this right? zero start or 1 end?? or both? 13 notes are an octave.
 	const float twelveTone[13] = {0.f, 0.083f, 0.167f, 0.25f, 0.333f, 0.417f, 0.5f, 0.583f, 0.666f, 0.75f, 0.833f, 0.917f, 1.f };
@@ -101,7 +102,7 @@ struct Trip : Module {
 		OUTPUTS_LEN
 	};
 	enum LightId {
-		LIGHTS_LEN
+		STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, STEP7, STEP8, LIGHTS_LEN
 	};
 
 	Trip() {
@@ -298,6 +299,8 @@ struct Trip : Module {
 			//keep gate on
 			outputs[GATEOUT_OUTPUT].setVoltage(10.f, 0);
 			outputs[GATEOUT_OUTPUT].setChannels(1);
+			//turn on the light for the step
+			lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(1.f);
 			return;
 		}
 		else if ((stepCount > stepDuration) && (stepCount < stepSpace)) 
@@ -305,6 +308,8 @@ struct Trip : Module {
 			//turn off gate output
 			outputs[GATEOUT_OUTPUT].setVoltage(0.f, 0);
 			outputs[GATEOUT_OUTPUT].setChannels(1);
+			//turn off the light
+			lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(0.f);
 			return;
 		}
 		
@@ -440,6 +445,17 @@ OutputId getOuputEnum(const std::string lookup) {
 	else DEBUG("cv = %s", lookup.c_str());
 }
 
+LightId getLightEnum(const std::string lookup) {
+    if (lookup == "STEP1") return LightId::STEP1;
+    else if (lookup == "STEP2") return LightId::STEP2;
+    else if (lookup == "STEP3") return LightId::STEP3;
+	else if (lookup == "STEP4") return LightId::STEP4;
+    else if (lookup == "STEP5") return LightId::STEP5;
+	else if (lookup == "STEP6") return LightId::STEP6;
+    else if (lookup == "STEP7") return LightId::STEP7;
+	else if (lookup == "STEP8") return LightId::STEP8;
+	else DEBUG("light = %s", lookup.c_str());
+}
 
 };
 
@@ -468,22 +484,26 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 59.928)), module, Trip::VOLTS6_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 59.928)), module, Trip::VOLTS7_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 59.928)), module, Trip::VOLTS8_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 77.344)), module, Trip::SPACE1_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 77.344)), module, Trip::SPACE2_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 77.344)), module, Trip::SPACE3_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.814, 77.344)), module, Trip::SPACE4_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.181, 77.344)), module, Trip::SPACE5_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 77.344)), module, Trip::SPACE6_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 77.344)), module, Trip::SPACE7_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 77.344)), module, Trip::SPACE8_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 94.76)), module, Trip::GATE1_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 94.76)), module, Trip::GATE2_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 94.76)), module, Trip::GATE3_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.814, 94.76)), module, Trip::GATE4_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.181, 94.76)), module, Trip::GATE5_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 94.76)), module, Trip::GATE6_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 94.76)), module, Trip::GATE7_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 94.76)), module, Trip::GATE8_PARAM));
+
+		//-3 on y
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 75.844)), module, Trip::SPACE1_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 75.844)), module, Trip::SPACE2_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 75.844)), module, Trip::SPACE3_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.814, 75.844)), module, Trip::SPACE4_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.181, 75.844)), module, Trip::SPACE5_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 75.844)), module, Trip::SPACE6_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 75.844)), module, Trip::SPACE7_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 75.844)), module, Trip::SPACE8_PARAM));
+
+		//-3 on y
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 91.76)), module, Trip::GATE1_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 91.76)), module, Trip::GATE2_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 91.76)), module, Trip::GATE3_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(62.814, 91.76)), module, Trip::GATE4_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(75.181, 91.76)), module, Trip::GATE5_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(87.548, 91.76)), module, Trip::GATE6_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 91.76)), module, Trip::GATE7_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 91.76)), module, Trip::GATE8_PARAM));
 
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(37.57, 41.473)), module, Trip::CLOCK_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(58.333, 41.473)), module, Trip::RESET_INPUT));
@@ -491,6 +511,17 @@ struct TripWidget : ModuleWidget {
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(76.005, 41.473)), module, Trip::ALLCVOUT_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(93.997, 41.473)), module, Trip::GATEOUT_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(111.989, 41.473)), module, Trip::TRIGGER_OUTPUT));
+
+		//add lights above the outputs
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(25.712, 102)), module, Trip::STEP1));
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(38.079, 102)), module, Trip::STEP2));
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(50.447, 102)), module, Trip::STEP3));
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(62.814, 102)), module, Trip::STEP4));
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(75.181, 102)), module, Trip::STEP5));
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(87.549, 102)), module, Trip::STEP6));
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(99.916, 102)), module, Trip::STEP7));
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(112.283, 102)), module, Trip::STEP8));
+
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(25.712, 112.107)), module, Trip::CV1_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(38.079, 112.107)), module, Trip::CV2_OUTPUT));
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(50.447, 112.107)), module, Trip::CV3_OUTPUT));
