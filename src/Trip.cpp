@@ -7,7 +7,7 @@ struct Trip : Module {
 	int mode = 0;
 	float volts = 0.f;
 	float voltsFraction = 0.f;
-	float voltsInteger = 0;
+	double voltsInteger = 0.f;
 	float space = 0.f;
 	float gate = 0.f;
 	float skipChance = 0.f;
@@ -251,7 +251,15 @@ struct Trip : Module {
 		//set the current step output to its output and to all cv ouput
 		octave = params[OCTAVE_PARAM].getValue();
 		mode = params[MODE_PARAM].getValue();
-		volts = params[getVoltsEnum(VOLTS + std::to_string(currentStep))].getValue();
+		try {
+			volts = params[getVoltsEnum(VOLTS + std::to_string(currentStep))].getValue();
+		}
+		catch( const std::invalid_argument& e ) {
+    			// do stuff with exception... 
+				DEBUG("volts lookup is bad = %i", currentStep);
+				//by returning, the module will do nothing, signaling a problem
+				return;
+		}
 		//also sets voltInteger
 		voltsFraction = modf(volts, &voltsInteger);
 
@@ -274,16 +282,22 @@ struct Trip : Module {
 		}
 
 		//DEBUG("volts = %f", volts);
+		try {
+			//add in the octave value bias
+			outputs[getOuputEnum(CV + std::to_string(currentStep))].setVoltage(volts + octave);
+			outputs[ALLCVOUT_OUTPUT].setVoltage(volts + octave);
 
-		//add in the octave value bias
-		outputs[getOuputEnum(CV + std::to_string(currentStep))].setVoltage(volts + octave);
-		outputs[ALLCVOUT_OUTPUT].setVoltage(volts + octave);
-
-		//calculate duration of currentStep and total space for the step in number of samples
-		stepSpace = params[getSpaceEnum(SPACE + std::to_string(currentStep))].getValue() * ticks;
-		//step duration is a fraction of the total allocated space for the step
-		stepDuration = params[getGateEnum(GATE + std::to_string(currentStep))].getValue() * stepSpace;
-
+			//calculate duration of currentStep and total space for the step in number of samples
+			stepSpace = params[getSpaceEnum(SPACE + std::to_string(currentStep))].getValue() * ticks;
+			//step duration is a fraction of the total allocated space for the step
+			stepDuration = params[getGateEnum(GATE + std::to_string(currentStep))].getValue() * stepSpace;
+		}
+		catch( const std::invalid_argument& e ) {
+    			// do stuff with exception... 
+				DEBUG("lookup is bad = %i", currentStep);
+				//by returning, the module will do nothing, signaling a problem
+				return;
+		}
 
 
 		/* this logic also controls if the Gate signal is off or on. */
@@ -300,7 +314,13 @@ struct Trip : Module {
 			outputs[GATEOUT_OUTPUT].setVoltage(10.f, 0);
 			outputs[GATEOUT_OUTPUT].setChannels(1);
 			//turn on the light for the step
-			lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(1.f);
+			try {
+				lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(1.f);
+			}
+			catch( const std::invalid_argument& e ) {
+    			// do stuff with exception... 
+				DEBUG("lights lookup is bad = %i", currentStep);
+			}
 			return;
 		}
 		else if ((stepCount > stepDuration) && (stepCount < stepSpace)) 
@@ -309,7 +329,13 @@ struct Trip : Module {
 			outputs[GATEOUT_OUTPUT].setVoltage(0.f, 0);
 			outputs[GATEOUT_OUTPUT].setChannels(1);
 			//turn off the light
-			lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(0.f);
+						try {
+				lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(0.f);
+			}
+			catch( const std::invalid_argument& e ) {
+    			// do stuff with exception... 
+				DEBUG("lights lookup is bad = %i", currentStep);
+			}
 			return;
 		}
 		
@@ -406,7 +432,7 @@ ParamId getVoltsEnum(const std::string lookup) {
 	else if (lookup == "VOLTS6") return ParamId::VOLTS6_PARAM;
     else if (lookup == "VOLTS7") return ParamId::VOLTS7_PARAM;
 	else if (lookup == "VOLTS8") return ParamId::VOLTS8_PARAM;
-	else DEBUG("volts = %s", lookup.c_str());
+	else throw std::invalid_argument("received bad lookup value");
 }
 
 ParamId getSpaceEnum(const std::string lookup) {
@@ -418,7 +444,7 @@ ParamId getSpaceEnum(const std::string lookup) {
 	else if (lookup == "SPACE6") return ParamId::SPACE6_PARAM;
     else if (lookup == "SPACE7") return ParamId::SPACE7_PARAM;
 	else if (lookup == "SPACE8") return ParamId::SPACE8_PARAM;
-	else DEBUG("space = %s", lookup.c_str());
+	else throw std::invalid_argument("received bad lookup value");
 }
 
 ParamId getGateEnum(const std::string lookup) {
@@ -430,7 +456,7 @@ ParamId getGateEnum(const std::string lookup) {
 	else if (lookup == "GATE6") return ParamId::GATE6_PARAM;
     else if (lookup == "GATE7") return ParamId::GATE7_PARAM;
 	else if (lookup == "GATE8") return ParamId::GATE8_PARAM;
-	else DEBUG("gate = %s", lookup.c_str());
+	else throw std::invalid_argument("received bad lookup value");
 }
 
 OutputId getOuputEnum(const std::string lookup) {
@@ -442,7 +468,7 @@ OutputId getOuputEnum(const std::string lookup) {
 	else if (lookup == "CV6") return OutputId::CV6_OUTPUT;
     else if (lookup == "CV7") return OutputId::CV7_OUTPUT;
 	else if (lookup == "CV8") return OutputId::CV8_OUTPUT;
-	else DEBUG("cv = %s", lookup.c_str());
+	else throw std::invalid_argument("received bad lookup value");
 }
 
 LightId getLightEnum(const std::string lookup) {
@@ -454,7 +480,7 @@ LightId getLightEnum(const std::string lookup) {
 	else if (lookup == "STEP6") return LightId::STEP6;
     else if (lookup == "STEP7") return LightId::STEP7;
 	else if (lookup == "STEP8") return LightId::STEP8;
-	else DEBUG("light = %s", lookup.c_str());
+	else throw std::invalid_argument("received bad lookup value");
 }
 
 };
