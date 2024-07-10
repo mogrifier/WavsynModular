@@ -130,11 +130,11 @@ struct Trip : Module {
 		configSwitch(MODE_PARAM, 0.f, 2.f, 0.f, "Quantization:", {"None", "12-Tone", "Quartertone"});
 
 		//CV output is simply called VOLTS since it cud be a pitch or a control signal but both are VOLTS
-		configParam(VOLTS1_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS1_PARAM, 0.f, 10.f, 2.167f, "Set the Step CV output");
 		configParam(VOLTS2_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
-		configParam(VOLTS3_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
-		configParam(VOLTS4_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
-		configParam(VOLTS5_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS3_PARAM, 0.f, 10.f, 2.33f, "Set the Step CV output");
+		configParam(VOLTS4_PARAM, 0.f, 10.f, 2.75f, "Set the Step CV output");
+		configParam(VOLTS5_PARAM, 0.f, 10.f, 2.5f, "Set the Step CV output");
 		configParam(VOLTS6_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
 		configParam(VOLTS7_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
 		configParam(VOLTS8_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
@@ -145,20 +145,20 @@ struct Trip : Module {
 		configParam(SPACE2_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
 		configParam(SPACE3_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
 		configParam(SPACE4_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
-		configParam(SPACE5_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
-		configParam(SPACE6_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
-		configParam(SPACE7_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
-		configParam(SPACE8_PARAM, 0.f, 1.f, 0.125f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE5_PARAM, 0.f, 1.f, 0.5f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE6_PARAM, 0.f, 1.f, 0.f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE7_PARAM, 0.f, 1.f, 0.f, "Max Step Time", "%", 0.f, 100.f);
+		configParam(SPACE8_PARAM, 0.f, 1.f, 0.f, "Max Step Time", "%", 0.f, 100.f);
 
 		//each step is given an amount of by its SPACE setting. Gate governs how much of the SPACE is used.
-		configParam(GATE1_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE2_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE3_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE4_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE5_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE6_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE7_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE8_PARAM, 0.f, 1.f, 0.85f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE1_PARAM, 0.f, 1.f, 0.6f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE2_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE3_PARAM, 0.f, 1.f, 0.35f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE4_PARAM, 0.f, 1.f, 0.35f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE5_PARAM, 0.f, 1.f, 0.15f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE6_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE7_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE8_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
 
 		configOutput(CV1_OUTPUT, "Step 1 Individual CV Out");
 		configOutput(CV2_OUTPUT, "Step 2 Individual CV Out");
