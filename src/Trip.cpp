@@ -30,9 +30,7 @@ struct Trip : Module {
 	int ticks = 115200; //default based on 100 BPM
 	bool clockTriggered = false;
 	dsp::SchmittTrigger clockTrigger;
-
 	double clockVoltage = 0.0f;
-
 	//for reset sensing
 	dsp::SchmittTrigger trigger;
 	bool reset = false;
