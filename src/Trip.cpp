@@ -3,7 +3,7 @@
 using namespace math;
 
 struct Trip : Module {
-	int STEPS = 8;
+	const int STEPS = 8;
 	int mode = 0;
 	float volts = 0.f;
 	float voltsFraction = 0.f;
@@ -14,8 +14,8 @@ struct Trip : Module {
 	float skipped = false;
 	std::string step = "";
 	int currentStep = 1;
-	int stepSpace = 0;
-	int stepDuration = 0;
+	float stepSpace = 0.f;
+	float stepDuration = 0.f;
 
 	int octave = 0;
 	double duration = 0.f;
@@ -30,6 +30,7 @@ struct Trip : Module {
 	int ticks = 115200; //default based on 100 BPM
 	bool clockTriggered = false;
 	dsp::SchmittTrigger clockTrigger;
+
 	double clockVoltage = 0.0f;
 
 	//for reset sensing
@@ -48,6 +49,12 @@ struct Trip : Module {
 	const float quarterTone[25] = {0.f, 0.0417f, 0.083f, 0.125f, 0.167f, 0.208, 0.25f, 0.292f, 0.333f, 0.375f, 0.417f, 0.458f, 0.5f,
 	 	0.542f, 0.583f, 0.625f, 0.666f, 0.708f, 0.75f, 0.792f, 0.833f, 0.875f, 0.917f, 0.958f, 1.f};
 
+	//for space parameter change tracking
+	float spaceSetting[8] = {0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125};
+	float spaceInc = 0.f;
+	float spaceTotal = 0.f;
+	bool firstRun = true;
+	const float EPSILON = 1e-4f;
 
 	enum ParamId {
 		OCTAVE_PARAM,
@@ -173,10 +180,31 @@ struct Trip : Module {
 		configInput(RESET_INPUT, "Reset the sequencer at Step 1 on a trigger");
 		configOutput(ALLCVOUT_OUTPUT, "All steps' output");
 		configOutput(GATEOUT_OUTPUT, "Gate signal for each step");
-		configOutput(TRIGGER_OUTPUT, "Trigger output at start of each step");
+		configOutput(TRIGGER_OUTPUT, "Trigger output at start of each step");	
 	}
 
 	void process(const ProcessArgs& args) override {
+		
+		if (firstRun) {
+		//one-time setup code
+			int i = 0;
+			try {
+				//set the space settings to values from the UI (moved here since not working in the constructor properly)
+				for (i = 0; i < STEPS; i++) {
+					spaceSetting[i] = params[getSpaceEnum(SPACE + std::to_string(i + 1))].getValue();
+					//DEBUG("setting %f", spaceSetting[i]);
+				}
+			}
+			catch(const std::invalid_argument& e) {
+				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
+				DEBUG("lookup is bad = %i", i);
+				//by returning, the module will do nothing, signaling a problem
+				return;
+			}
+			firstRun = false;
+		}
+
+
 		//need to get a tempo from the clock input
 		if (inputs[CLOCK_INPUT].isConnected()){
 			//check for clock transition
@@ -211,6 +239,99 @@ struct Trip : Module {
 			//no clock input so do nothing
 			return;
 		}
+
+		//moved declaration outside loop so it is valid in catch statement
+		int j = 0;
+		spaceTotal = 0.f;
+		//check if the space knobs have changed position and adjust the others
+		for (int i = 0; i < STEPS; i++) {
+			//check each setting against the prior setting
+			try {
+				//step is 1-base, but arrays are 0-based
+				stepSpace = params[getSpaceEnum(SPACE + std::to_string(i + 1))].getValue();
+				//FIXME this always triggers as soon as the delta > 0.03 implying UI thread is separate.
+				//believe the fix is an event handling approach- start stop drag, I think.
+
+				//skip a step if the value is really small. can't compare floats to zero
+				if (stepSpace < EPSILON) {
+					//DEBUG("skipping step %i", i + 1);
+					continue;
+				}
+				//triggers if the space knob has moved
+				if (abs(stepSpace - spaceSetting[i]) > .0005f) {
+					//DEBUG("setting %f", spaceSetting[i]);
+					//DEBUG("stepSpace %f", stepSpace);
+					//the knob has moved since the last call to process beyond a deadband of .1 so change other values
+					for (j = 0; j < STEPS; j++) {
+						//modify all knob settings except knob i AND any knobs set to zero (since user wants zero)
+						//need polarity and magnitude of the change; weight the change
+						//the spaceInc value is computed for the knob that changed position. It is a small share that is
+						//multiplied by the amount of each step's space and applied to it.
+						
+						spaceInc = (stepSpace - spaceSetting[i]) / (1 - spaceSetting[i]);
+						//DEBUG("spaceInc = %f", spaceInc);
+						if (j != i) {
+							//polarity of spaceInc is important
+							params[getSpaceEnum(SPACE + std::to_string(j + 1))].setValue(spaceSetting[j] - 
+								(spaceInc * spaceSetting[j]));
+							//DEBUG("applying %f to step %i",  spaceInc * spaceSetting[j], j + 1);
+							//protect against negative values
+							if (params[getSpaceEnum(SPACE + std::to_string(j + 1))].getValue() < 0.f)
+							{
+								params[getSpaceEnum(SPACE + std::to_string(j + 1))].setValue(0.f);
+								//DEBUG("step = %i set to zero", j + 1);
+							}
+						}
+						spaceTotal += params[getSpaceEnum(SPACE + std::to_string(j + 1))].getValue();
+						//update the spaceSetting[] with the new values
+						spaceSetting[j] = params[getSpaceEnum(SPACE + std::to_string(j + 1))].getValue();
+						//DEBUG("step = %i settings = %f", j + 1, spaceSetting[j]);
+					}
+					//DEBUG("******** spaceTotal =  %f", spaceTotal);
+					//note that there is only ONE mouse so only ONE knob can change in a call to process at a time
+					break;
+				}
+			}
+			catch( const std::invalid_argument& e ) {
+				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
+				DEBUG("lookup is bad; either %i or %i", i, j);
+				//by returning, the module will do nothing, signaling a problem
+				return;
+			}
+		}
+
+
+
+		//check value- should always be 1 or so close it doesn't matter. Reason is you lose bar sync if not near 1.
+		
+		if (spaceTotal > 1) {
+			float maxSpace = 0.f;
+			int maxSpaceStep = 0;
+			//trim off some space from the steps with the most. If the rest of the code is accurate this should not do much
+			for (int i = 0; i < STEPS; i++) {
+				if (spaceSetting[i] > maxSpace)
+				{
+					maxSpace = spaceSetting[i];
+					//remember, step is + 1 
+					maxSpaceStep = i + 1;
+				}
+			}
+			
+			try {
+				//trim the max space 
+				float adjusted = spaceSetting[maxSpaceStep - 1] - (spaceTotal - 1);
+				//DEBUG("trimming step %i by %f", maxSpaceStep, adjusted);
+				params[getSpaceEnum(SPACE + std::to_string(maxSpaceStep))].setValue(adjusted);
+			}
+			catch (const std::invalid_argument& e) {
+				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
+				//DEBUG("lookup is bad= %i", maxSpaceStep);
+				//by returning, the module will do nothing, signaling a problem
+				return;
+			}
+		}
+
+
 		
 		count++;
 		stepCount++;
