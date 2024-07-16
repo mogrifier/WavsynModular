@@ -402,7 +402,49 @@ struct Trip : Module {
 
 		//DEBUG("volts = %f", volts);
 		try {
-			//add in the octave value bias
+			//add in the octave value bias but only if all will STAY IN RANGE 0-10. Don't clamp. Reduce all.
+		 	if (getMaxVolts() + octave > 10.f) {
+				//out of range. Reduce octave setting appropriately.
+				if (getMaxVolts() + octave - 1 > 10.f) {
+				//out of range. Reduce octave setting appropriately.
+				 	if (getMaxVolts() + octave - 2 > 10.f) {
+						//set ocatve to zero since +3 is too high for settings (we know octave is 3 at this point)
+						params[OCTAVE_PARAM].setValue(0.f);
+					}
+					else {
+						params[OCTAVE_PARAM].setValue(octave - 2.f);
+					}
+				}
+				else {
+					params[OCTAVE_PARAM].setValue(octave - 1.f);
+				}
+			}
+
+			/* Min Voltage check is NOT needed.
+			-3v volts in the VCV VCO is ok. In fact, sounds good. I thought a 0-10v range was correct. Turns out
+			different VCO's have different inputs. If -3 is bad for you, there are level adjusters.
+			*/
+			//check min values and adjust octave setting as needed
+			/*
+			if (getMinVolts() + octave < 0.f) {
+				//out of range. Reduce octave setting appropriately.
+				if (getMinVolts() + octave + 1 < 0.f) {
+				//out of range. Reduce octave setting appropriately.
+				 	if (getMinVolts() + octave + 2 < 0.f) {
+						//set ocatve to zero since -3 is too high for settings (we know octave is -3 at this point)
+						params[OCTAVE_PARAM].setValue(0.f);
+					}
+					else {
+						params[OCTAVE_PARAM].setValue(octave + 2.f);
+					}
+				}
+				else {
+					params[OCTAVE_PARAM].setValue(octave + 1.f);
+				}
+			}
+			*/
+
+
 			outputs[getOuputEnum(CV + std::to_string(currentStep))].setVoltage(volts + octave);
 			outputs[ALLCVOUT_OUTPUT].setVoltage(volts + octave);
 
@@ -484,6 +526,36 @@ struct Trip : Module {
 
 	}
 
+
+//get max voltage for all steps being used (space > 0)
+float getMaxVolts() {
+	float max = 0.f;
+	float current = 0.f;
+	for (int i = 1; i <= STEPS; i++) {
+		current = params[getVoltsEnum(VOLTS + std::to_string(i))].getValue();
+		//ignore steps that are skipped (spac = 0)
+		if (current > max && params[getSpaceEnum(SPACE + std::to_string(i))].getValue() > 0.f)
+		{
+			max = current;
+		}
+	}
+	return max;
+}
+
+//get min voltage for all steps being used (space > 0)
+float getMinVolts() {
+	float min = 10.f;
+	float current = 0.f;
+	for (int i = 1; i <= STEPS; i++) {
+		current = params[getVoltsEnum(VOLTS + std::to_string(i))].getValue();
+		//ignore steps that are skipped (spac = 0)
+		if (current < min && params[getSpaceEnum(SPACE + std::to_string(i))].getValue() > 0.f)
+		{
+			min = current;
+		}
+	}
+	return min;
+}
 
 int getStep(){
 	//for the number of samples since step 1 figure out current step (could still be 1)
