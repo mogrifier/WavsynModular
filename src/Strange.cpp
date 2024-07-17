@@ -141,13 +141,18 @@ struct Strange : Module {
 			switch ((int)params[MODE_PARAM].getValue()) {
 				case HENON:
 				//can get stuck so this will reset it automatically
-					if (henonX == 0 && henonY == 0){
+					if (henonX <= -2.2f || henonY <= -2.2f){
+						//DEBUG("reset; henonx= %d, henony= %d", henonX, henonY);
 						henonX = 1.f;
 						henonY = 1.f;
 					}
 					henon(henonX, henonY);
 					break;
 				case IKEDA:
+					if (z.real() <= -2.f || z.imag() <= -2.){
+						//DEBUG("reset; ikeda real %d, ikeda imag %d", z.real(), z.imag());
+						z = complex<double>{0, 0};  
+					}
 					ikeda(z);
 					break;
 			}
