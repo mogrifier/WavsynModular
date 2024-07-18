@@ -353,6 +353,8 @@ struct Trip : Module {
 			if (trigger.process(inputs[RESET_INPUT].getVoltage(), 0.1f, 2.f)) {
 				//trigger received, reset step the value specified by the MODULO param
 				reset = true;
+				//turn off all lights
+				lightsOff();
 			}
 			else {
 				//no reset signal
@@ -479,7 +481,6 @@ struct Trip : Module {
 				lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(1.f);
 			}
 			catch( const std::invalid_argument& e ) {
-    			// do stuff with exception... 
 				DEBUG("lights lookup is bad = %i", currentStep);
 			}
 			return;
@@ -490,11 +491,10 @@ struct Trip : Module {
 			outputs[GATEOUT_OUTPUT].setVoltage(0.f, 0);
 			outputs[GATEOUT_OUTPUT].setChannels(1);
 			//turn off the light
-						try {
+			try {
 				lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(0.f);
 			}
 			catch( const std::invalid_argument& e ) {
-    			// do stuff with exception... 
 				DEBUG("lights lookup is bad = %i", currentStep);
 			}
 			return;
@@ -519,8 +519,7 @@ struct Trip : Module {
 			count = 0;
 		}
 
-		if (currentStep > params[LENGTH_PARAM].getValue()) {
-			//FIXME this needs to respect the MOD setting
+		if (currentStep > STEPS) {
 			currentStep = 1;
 		}
 
@@ -557,6 +556,16 @@ float getMinVolts() {
 	return min;
 }
 
+void lightsOff() {
+    //no reason to check for exception since calling code already does
+    for (int i = 1; i <= STEPS; i++) {
+        if (i != currentStep) {
+            lights[getLightEnum(STEP + std::to_string(i))].setBrightness(0.f);
+        }
+    }
+}
+
+
 int getStep(){
 	//for the number of samples since step 1 figure out current step (could still be 1)
 	//take the modulo against entire bar. sampleNumber goes from 0 to ticks.
@@ -564,7 +573,7 @@ int getStep(){
 	int step = 1;
 	float space = 0.f;
 	//need to look at each step's SPACE value to figure out the current step. 
-	for (int i = 1; i <= params[LENGTH_PARAM].getValue(); i++) {
+	for (int i = 1; i <= STEPS; i++) {
 		std::string test = SPACE + std::to_string(i);
 		space += params[getSpaceEnum(SPACE + std::to_string(i))].getValue();
 		DEBUG("space = %f", space);
