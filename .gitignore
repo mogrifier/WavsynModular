@@ -1,7 +1,6 @@
 /build
 /dist
 /.vscode
-/.vscode/launch.json
 /*.so
 /*.dylib
 /*.dll
