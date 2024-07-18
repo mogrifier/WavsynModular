@@ -59,7 +59,7 @@ struct Trip : Module {
 		MODULO_PARAM,
 		SKIP_PARAM,
 		REVERSAL_PARAM,
-		LENGTH_PARAM,
+		EVOL_PARAM,
 		MODE_PARAM,
 		VOLTS1_PARAM,
 		VOLTS2_PARAM,
@@ -129,7 +129,7 @@ struct Trip : Module {
 		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "Chance to reverse sequence");
 
 		//maybe a switch with settings 1-8?. Adjust SPACE so the times still add up to 100%
-		configSwitch(LENGTH_PARAM, 1, 8, 8, "Sequence Length:", {"1", "2", "3", "4", "5", "6", "7", "8"});
+		configParam(EVOL_PARAM, 0.f, 1.f, 0.f, "Pattern Evolution", "%", 0.f, 100.f);
 
 		//multiple switch positions- does quantization of VOLTS or not
 		configSwitch(MODE_PARAM, 0.f, 2.f, 0.f, "Quantization:", {"None", "12-Tone", "Quartertone"});
@@ -700,7 +700,7 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(36.406, 22.307)), module, Trip::MODULO_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(60.632, 22.307)), module, Trip::SKIP_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(84.859, 22.307)), module, Trip::REVERSAL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(109.085, 22.307)), module, Trip::LENGTH_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(109.085, 22.307)), module, Trip::EVOL_PARAM));
 		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(12.18, 43.524)), module, Trip::MODE_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 59.928)), module, Trip::VOLTS1_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 59.928)), module, Trip::VOLTS2_PARAM));
