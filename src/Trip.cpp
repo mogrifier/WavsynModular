@@ -156,14 +156,14 @@ struct Trip : Module {
 		configParam(SPACE8_PARAM, 0.f, 1.f, 0.f, "Max Step Time", "%", 0.f, 100.f);
 
 		//each step is given an amount of by its SPACE setting. Gate governs how much of the SPACE is used.
-		configParam(GATE1_PARAM, 0.f, 1.f, 0.6f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE2_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE3_PARAM, 0.f, 1.f, 0.35f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE4_PARAM, 0.f, 1.f, 0.35f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE5_PARAM, 0.f, 1.f, 0.15f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE6_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE7_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
-		configParam(GATE8_PARAM, 0.f, 1.f, 0.f, "Gate duration", "%", 0.f, 100.f);
+		configParam(GATE1_PARAM, 0.f, 0.99f, 0.6f, "Gate duration", "%", 0.f, 101.01f);
+		configParam(GATE2_PARAM, 0.f, 0.99f, 0.f, "Gate duration", "%", 0.f, 101.01f);
+		configParam(GATE3_PARAM, 0.f, 0.99f, 0.35f, "Gate duration", "%", 0.f, 101.01f);
+		configParam(GATE4_PARAM, 0.f, 0.99f, 0.35f, "Gate duration", "%", 0.f, 101.01f);
+		configParam(GATE5_PARAM, 0.f, 0.99f, 0.15f, "Gate duration", "%", 0.f, 101.01f);
+		configParam(GATE6_PARAM, 0.f, 0.99f, 0.f, "Gate duration", "%", 0.f, 101.01f);
+		configParam(GATE7_PARAM, 0.f, 0.99f, 0.f, "Gate duration", "%", 0.f, 101.01f);
+		configParam(GATE8_PARAM, 0.f, 0.99f, 0.f, "Gate duration", "%", 0.f, 101.01f);
 
 		configOutput(CV1_OUTPUT, "Step 1 Individual CV Out");
 		configOutput(CV2_OUTPUT, "Step 2 Individual CV Out");
