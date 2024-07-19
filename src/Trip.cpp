@@ -13,7 +13,7 @@ struct Trip : Module {
 	float skipChance = 0.f;
 	float skipped = false;
 	std::string step = "";
-	int currentStep = 1;
+	int stepIndex = 0;
 	float stepSpace = 0.f;
 	float stepDuration = 0.f;
 
@@ -53,6 +53,9 @@ struct Trip : Module {
 	float spaceTotal = 0.f;
 	bool firstRun = true;
 	const float EPSILON = 1e-4f;
+
+	//step tracking
+	int stepOrder[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 	enum ParamId {
 		OCTAVE_PARAM,
@@ -189,13 +192,13 @@ struct Trip : Module {
 			try {
 				//set the space settings to values from the UI (moved here since not working in the constructor properly)
 				for (i = 0; i < STEPS; i++) {
-					spaceSetting[i] = params[getSpaceEnum(SPACE + std::to_string(i + 1))].getValue();
-					//DEBUG("setting %f", spaceSetting[i]);
+					spaceSetting[stepOrder[i] - 1] = params[getSpaceEnum(SPACE + std::to_string(stepOrder[i]))].getValue();
+					//DEBUG("setting step %i = %f", stepOrder[i], spaceSetting[stepOrder[i] - 1]);
 				}
 			}
 			catch(const std::invalid_argument& e) {
 				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
-				DEBUG("lookup is bad = %i", i);
+				DEBUG("lookup is bad = %i", stepOrder[i]);
 				//by returning, the module will do nothing, signaling a problem
 				return;
 			}
@@ -245,19 +248,16 @@ struct Trip : Module {
 		for (int i = 0; i < STEPS; i++) {
 			//check each setting against the prior setting
 			try {
-				//step is 1-base, but arrays are 0-based
-				stepSpace = params[getSpaceEnum(SPACE + std::to_string(i + 1))].getValue();
-				//FIXME this always triggers as soon as the delta > 0.03 implying UI thread is separate.
-				//believe the fix is an event handling approach- start stop drag, I think.
-
+				//i and j are an index into stepOrder which keeps the order for use
+				stepSpace = params[getSpaceEnum(SPACE + std::to_string(stepOrder[i]))].getValue();
 				//skip a step if the value is really small. can't compare floats to zero
 				if (stepSpace < EPSILON) {
-					//DEBUG("skipping step %i", i + 1);
+					//DEBUG("skipping step %i", stepOrder[i]);
 					continue;
 				}
-				//triggers if the space knob has moved
-				if (abs(stepSpace - spaceSetting[i]) > .0005f) {
-					//DEBUG("setting %f", spaceSetting[i]);
+				//triggers if the space knob has moved.
+				if (abs(stepSpace - spaceSetting[stepOrder[i] - 1]) > .0005f) {
+					//DEBUG("setting %f", spaceSetting[stepOrder[i] - 1]);
 					//DEBUG("stepSpace %f", stepSpace);
 					//the knob has moved since the last call to process beyond a deadband of .1 so change other values
 					for (j = 0; j < STEPS; j++) {
@@ -265,25 +265,25 @@ struct Trip : Module {
 						//need polarity and magnitude of the change; weight the change
 						//the spaceInc value is computed for the knob that changed position. It is a small share that is
 						//multiplied by the amount of each step's space and applied to it.
-						
-						spaceInc = (stepSpace - spaceSetting[i]) / (1 - spaceSetting[i]);
+						//watch te index versus tehe enum values! ******
+						spaceInc = (stepSpace - spaceSetting[stepOrder[i] - 1]) / (1 - spaceSetting[stepOrder[i] - 1]);
 						//DEBUG("spaceInc = %f", spaceInc);
-						if (j != i) {
+						if (stepOrder[j] != stepOrder[i]) {
 							//polarity of spaceInc is important
-							params[getSpaceEnum(SPACE + std::to_string(j + 1))].setValue(spaceSetting[j] - 
-								(spaceInc * spaceSetting[j]));
-							//DEBUG("applying %f to step %i",  spaceInc * spaceSetting[j], j + 1);
+							params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(spaceSetting[stepOrder[j] - 1] - 
+								(spaceInc * spaceSetting[stepOrder[j] - 1]));
+							//DEBUG("applying %f to step %i",  spaceInc * spaceSetting[stepOrder[j] - 1], stepOrder[j]);
 							//protect against negative values
-							if (params[getSpaceEnum(SPACE + std::to_string(j + 1))].getValue() < 0.f)
+							if (params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue() < 0.f)
 							{
-								params[getSpaceEnum(SPACE + std::to_string(j + 1))].setValue(0.f);
-								//DEBUG("step = %i set to zero", j + 1);
+								params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(0.f);
+								//DEBUG("step = %i set to zero", stepOrder[j]);
 							}
 						}
-						spaceTotal += params[getSpaceEnum(SPACE + std::to_string(j + 1))].getValue();
-						//update the spaceSetting[] with the new values
-						spaceSetting[j] = params[getSpaceEnum(SPACE + std::to_string(j + 1))].getValue();
-						//DEBUG("step = %i settings = %f", j + 1, spaceSetting[j]);
+						spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+						//update the spaceSetting[stepOrder[i] - 1] with the new values
+						spaceSetting[stepOrder[j] - 1] = params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+						//DEBUG("step = %i settings = %f", stepOrder[j], spaceSetting[stepOrder[j] - 1]);
 					}
 					//DEBUG("******** spaceTotal =  %f", spaceTotal);
 					//note that there is only ONE mouse so only ONE knob can change in a call to process at a time
@@ -292,34 +292,31 @@ struct Trip : Module {
 			}
 			catch( const std::invalid_argument& e ) {
 				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
-				DEBUG("lookup is bad; either %i or %i", i, j);
+				DEBUG("lookup is bad; either %i or %i", stepOrder[i], stepOrder[j]);
 				//by returning, the module will do nothing, signaling a problem
 				return;
 			}
 		}
 
-
-
 		//check value- should always be 1 or so close it doesn't matter. Reason is you lose bar sync if not near 1.
-		
 		if (spaceTotal > 1) {
 			float maxSpace = 0.f;
-			int maxSpaceStep = 0;
+			int maxSpaceStepIndex = 0;
 			//trim off some space from the steps with the most. If the rest of the code is accurate this should not do much
 			for (int i = 0; i < STEPS; i++) {
-				if (spaceSetting[i] > maxSpace)
+				if (spaceSetting[stepOrder[i] - 1] > maxSpace)
 				{
-					maxSpace = spaceSetting[i];
-					//remember, step is + 1 
-					maxSpaceStep = i + 1;
+					maxSpace = spaceSetting[stepOrder[i] - 1];
+					//stepOrder uses the index so 0..7
+					maxSpaceStepIndex = stepOrder[i] - 1;
 				}
 			}
 			
 			try {
-				//trim the max space 
-				float adjusted = spaceSetting[maxSpaceStep - 1] - (spaceTotal - 1);
+				//trim the max space. maxSpaceStepIndex is the index to stepOrder, so -1 is NOT needed
+				float adjusted = spaceSetting[maxSpaceStepIndex] - (spaceTotal - 1);
 				//DEBUG("trimming step %i by %f", maxSpaceStep, adjusted);
-				params[getSpaceEnum(SPACE + std::to_string(maxSpaceStep))].setValue(adjusted);
+				params[getSpaceEnum(SPACE + std::to_string(stepOrder[maxSpaceStepIndex]))].setValue(adjusted);
 			}
 			catch (const std::invalid_argument& e) {
 				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
@@ -328,25 +325,9 @@ struct Trip : Module {
 				return;
 			}
 		}
-
-
-		
+	
 		count++;
 		stepCount++;
-
-		/*
-		use ticks and BPM and SPACE and GATE to figure out what is the current step and how to set volts and gate
-
-		Algorithm
-		compute tempo
-		Q: do I reset the sequencer start if tempo changes?? I think not. just adjust going forward for new timing
-		based on SPACE, determine what is current STEP
-		read voltage and gate for current STEP
-		set the associated output to the voltage (also set allCV)
-		Q: do I care if connected or not? I don't think I care. Just set the value.
-		use GATE to figure out if the gate is off or on at this point. Gate is a % of the SPACE for the step
-		*/
-		
 
 		if (inputs[RESET_INPUT].isConnected()) {
 			//check for reset signal
@@ -364,20 +345,19 @@ struct Trip : Module {
 
 		if (reset){
 			count = 0;
-			//back to the beginning
-			currentStep = params[MODULO_PARAM].getValue();
+			//back to the beginning. stepIndex is the index to stepOrder, so it still moves from 0 ..8 (zero based)
+			stepIndex = 0;
 		}
-
 
 		//set the current step output to its output and to all cv ouput
 		octave = params[OCTAVE_PARAM].getValue();
 		mode = params[MODE_PARAM].getValue();
 		try {
-			volts = params[getVoltsEnum(VOLTS + std::to_string(currentStep))].getValue();
+			volts = params[getVoltsEnum(VOLTS + std::to_string(stepOrder[stepIndex]))].getValue();
 		}
 		catch( const std::invalid_argument& e ) {
     			// do stuff with exception... 
-				DEBUG("volts lookup is bad = %i", currentStep);
+				DEBUG("volts lookup is bad = %i", stepOrder[stepIndex]);
 				//by returning, the module will do nothing, signaling a problem
 				return;
 		}
@@ -422,42 +402,17 @@ struct Trip : Module {
 				}
 			}
 
-			/* Min Voltage check is NOT needed.
-			-3v volts in the VCV VCO is ok. In fact, sounds good. I thought a 0-10v range was correct. Turns out
-			different VCO's have different inputs. If -3 is bad for you, there are level adjusters.
-			*/
-			//check min values and adjust octave setting as needed
-			/*
-			if (getMinVolts() + octave < 0.f) {
-				//out of range. Reduce octave setting appropriately.
-				if (getMinVolts() + octave + 1 < 0.f) {
-				//out of range. Reduce octave setting appropriately.
-				 	if (getMinVolts() + octave + 2 < 0.f) {
-						//set ocatve to zero since -3 is too high for settings (we know octave is -3 at this point)
-						params[OCTAVE_PARAM].setValue(0.f);
-					}
-					else {
-						params[OCTAVE_PARAM].setValue(octave + 2.f);
-					}
-				}
-				else {
-					params[OCTAVE_PARAM].setValue(octave + 1.f);
-				}
-			}
-			*/
-
-
-			outputs[getOuputEnum(CV + std::to_string(currentStep))].setVoltage(volts + octave);
+			outputs[getOuputEnum(CV + std::to_string(stepOrder[stepIndex]))].setVoltage(volts + octave);
 			outputs[ALLCVOUT_OUTPUT].setVoltage(volts + octave);
 
-			//calculate duration of currentStep and total space for the step in number of samples
-			stepSpace = params[getSpaceEnum(SPACE + std::to_string(currentStep))].getValue() * ticks;
+			//calculate duration for step pointed to by stepIndex and total space for the step in number of samples
+			stepSpace = params[getSpaceEnum(SPACE + std::to_string(stepOrder[stepIndex]))].getValue() * ticks;
 			//step duration is a fraction of the total allocated space for the step
-			stepDuration = params[getGateEnum(GATE + std::to_string(currentStep))].getValue() * stepSpace;
+			stepDuration = params[getGateEnum(GATE + std::to_string(stepOrder[stepIndex]))].getValue() * stepSpace;
 		}
 		catch( const std::invalid_argument& e ) {
     			// do stuff with exception... 
-				DEBUG("lookup is bad = %i", currentStep);
+				DEBUG("lookup is bad = %i", stepOrder[stepIndex]);
 				//by returning, the module will do nothing, signaling a problem
 				return;
 		}
@@ -478,10 +433,10 @@ struct Trip : Module {
 			outputs[GATEOUT_OUTPUT].setChannels(1);
 			//turn on the light for the step
 			try {
-				lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(1.f);
+				lights[getLightEnum(STEP + std::to_string(stepOrder[stepIndex]))].setBrightness(1.f);
 			}
 			catch( const std::invalid_argument& e ) {
-				DEBUG("lights lookup is bad = %i", currentStep);
+				DEBUG("lights lookup is bad = %i", stepOrder[stepIndex]);
 			}
 			return;
 		}
@@ -492,17 +447,17 @@ struct Trip : Module {
 			outputs[GATEOUT_OUTPUT].setChannels(1);
 			//turn off the light
 			try {
-				lights[getLightEnum(STEP + std::to_string(currentStep))].setBrightness(0.f);
+				lights[getLightEnum(STEP + std::to_string(stepOrder[stepIndex]))].setBrightness(0.f);
 			}
 			catch( const std::invalid_argument& e ) {
-				DEBUG("lights lookup is bad = %i", currentStep);
+				DEBUG("lights lookup is bad = %i", stepOrder[stepIndex]);
 			}
 			return;
 		}
 		
 		if (stepCount >= stepSpace){
 			stepCount = 0;
-			currentStep++;
+			stepIndex++;
 			//once you skip a step, it is skipped for the duration (Space) of the step. only check at beggining of each step.
 			if (random::uniform() <= params[SKIP_PARAM].getValue()) {
 				skipped = true;
@@ -519,21 +474,22 @@ struct Trip : Module {
 			count = 0;
 		}
 
-		if (currentStep > STEPS) {
-			currentStep = 1;
+		if (stepIndex >= STEPS) {
+			//reset the index to stepOrder
+			stepIndex = 0;
 		}
 
 	}
 
 
-//get max voltage for all steps being used (space > 0)
+//get max voltage for all steps being used (space > 0). 
 float getMaxVolts() {
 	float max = 0.f;
 	float current = 0.f;
-	for (int i = 1; i <= STEPS; i++) {
-		current = params[getVoltsEnum(VOLTS + std::to_string(i))].getValue();
+	for (int i = 0; i < STEPS; i++) {
+		current = params[getVoltsEnum(VOLTS + std::to_string(stepOrder[i]))].getValue();
 		//ignore steps that are skipped (spac = 0)
-		if (current > max && params[getSpaceEnum(SPACE + std::to_string(i))].getValue() > 0.f)
+		if (current > max && params[getSpaceEnum(SPACE + std::to_string(stepOrder[i]))].getValue() > 0.f)
 		{
 			max = current;
 		}
@@ -541,52 +497,13 @@ float getMaxVolts() {
 	return max;
 }
 
-//get min voltage for all steps being used (space > 0)
-float getMinVolts() {
-	float min = 10.f;
-	float current = 0.f;
-	for (int i = 1; i <= STEPS; i++) {
-		current = params[getVoltsEnum(VOLTS + std::to_string(i))].getValue();
-		//ignore steps that are skipped (spac = 0)
-		if (current < min && params[getSpaceEnum(SPACE + std::to_string(i))].getValue() > 0.f)
-		{
-			min = current;
-		}
-	}
-	return min;
-}
-
 void lightsOff() {
     //no reason to check for exception since calling code already does
     for (int i = 1; i <= STEPS; i++) {
-        if (i != currentStep) {
+        if (i != stepOrder[stepIndex]) {
             lights[getLightEnum(STEP + std::to_string(i))].setBrightness(0.f);
         }
     }
-}
-
-
-int getStep(){
-	//for the number of samples since step 1 figure out current step (could still be 1)
-	//take the modulo against entire bar. sampleNumber goes from 0 to ticks.
-
-	int step = 1;
-	float space = 0.f;
-	//need to look at each step's SPACE value to figure out the current step. 
-	for (int i = 1; i <= STEPS; i++) {
-		std::string test = SPACE + std::to_string(i);
-		space += params[getSpaceEnum(SPACE + std::to_string(i))].getValue();
-		DEBUG("space = %f", space);
-		//check where count falls 
-		if (count <= space * ticks) {
-			//means the current count falls in the latest step
-			step = i;
-			break;
-		}
-	}
-
-	DEBUG("currentStep = %i", step);
-	return step;
 }
 
 //quantize- 
