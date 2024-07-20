@@ -1,4 +1,6 @@
 #include "plugin.hpp"
+#include <algorithm>
+#include <iterator>
 
 using namespace math;
 
@@ -477,8 +479,17 @@ struct Trip : Module {
 		if (stepIndex >= STEPS) {
 			//reset the index to stepOrder
 			stepIndex = 0;
-		}
 
+
+			//check for modulo shift
+
+
+			//check for reversal and perfrom
+			if (random::uniform() <= params[REVERSAL_PARAM].getValue()) {
+				//rewrite the current pattern in stepOrder backwards
+				std::reverse(std::begin(stepOrder), std::end(stepOrder));
+			}
+		}
 	}
 
 
