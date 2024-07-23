@@ -58,6 +58,7 @@ struct Trip : Module {
 
 	//step tracking
 	int stepOrder[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+	int tempOrder[8] = {1, 2, 3, 4, 5, 6, 7, 8};
 
 	enum ParamId {
 		OCTAVE_PARAM,
@@ -124,8 +125,8 @@ struct Trip : Module {
 		//restrict values to whole numbers
 		configSwitch(OCTAVE_PARAM, -3.f, 3.f, 0.f, "Add to VOLTS for each step", {"-3", "-2", "-1", "0", "1", "2", "3"});
 
-		//causes a shift in the pattern by changing where it starts- maybe a switch with settings 1-8?
-		configSwitch(MODULO_PARAM, 1, 8, 1, "Starting Step:", {"1", "2", "3", "4", "5", "6", "7", "8"});
+		//causes a shift in the pattern by changing where it starts- add the shift amount to get new starting step
+		configSwitch(MODULO_PARAM, 0, 7, 0, "Starting Step:", {"0", "1", "2", "3", "4", "5", "6", "7"});
 
 		//skip a step (gate out is zero). Same chance for every step.
 		configParam(SKIP_PARAM, 0.f, 1.f, 0.f, "Chance to skip a step");
@@ -479,11 +480,17 @@ struct Trip : Module {
 		if (stepIndex >= STEPS) {
 			//reset the index to stepOrder
 			stepIndex = 0;
-
-
-			//check for modulo shift
-
-
+			//need to always verify/update the order, since you might set it back to zero
+			//rewrite the order using a modulo formula to shift the pattern
+			int shift = 0;
+			//save the current order to avoid rewriting error. The purpose of the modulo shift is to KEEP SHIFTING
+			std::copy(stepOrder, stepOrder + STEPS, tempOrder);
+			for (int i = 0; i < STEPS; i++) {
+				shift = i + params[MODULO_PARAM].getValue();
+				//read the value pointed to by the modulo operation and move it. This should be able to shift a reversed order.
+				stepOrder[i] = tempOrder[shift % STEPS];
+				//DEBUG("step index = %i, value = %i,  temp order value = %i", i, stepOrder[i], tempOrder[i]);
+			}
 			//check for reversal and perfrom
 			if (random::uniform() <= params[REVERSAL_PARAM].getValue()) {
 				//rewrite the current pattern in stepOrder backwards
