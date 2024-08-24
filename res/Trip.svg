@@ -31,8 +31,8 @@
      inkscape:cy="255"
      inkscape:window-width="1608"
      inkscape:window-height="892"
-     inkscape:window-x="157"
-     inkscape:window-y="154"
+     inkscape:window-x="162"
+     inkscape:window-y="153"
      inkscape:window-maximized="0"
      inkscape:current-layer="layer1"
      showguides="true"
@@ -438,7 +438,7 @@
      inkscape:groupmode="layer"
      id="layer2"
      inkscape:label="components"
-     style="display:none">
+     style="display:inline">
     <ellipse
        style="display:inline;fill:#ff0000;fill-opacity:1;stroke-width:0.264583"
        id="path1-3-2"
