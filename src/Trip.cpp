@@ -7,6 +7,7 @@ using namespace math;
 struct Trip : Module {
 	const int STEPS = 8;
 	int mode = 0;
+	int quant = 0;
 	float volts = 0.f;
 	float voltsFraction = 0.f;
 	double voltsInteger = 0.f;
@@ -62,6 +63,7 @@ struct Trip : Module {
 
 	enum ParamId {
 		OCTAVE_PARAM,
+		QUANT_PARAM,
 		MODULO_PARAM,
 		SKIP_PARAM,
 		REVERSAL_PARAM,
@@ -125,6 +127,9 @@ struct Trip : Module {
 		//restrict values to whole numbers
 		configSwitch(OCTAVE_PARAM, -3.f, 3.f, 0.f, "Add to VOLTS for each step", {"-3", "-2", "-1", "0", "1", "2", "3"});
 
+		//free or locked mode for how long the pattern is and if the space values add to 100% or not
+		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Space Mode:", {"Free", "Locked"});
+
 		//causes a shift in the pattern by changing where it starts- add the shift amount to get new starting step
 		configSwitch(MODULO_PARAM, 0, 7, 0, "Starting Step:", {"0", "1", "2", "3", "4", "5", "6", "7"});
 
@@ -138,7 +143,7 @@ struct Trip : Module {
 		configParam(EVOL_PARAM, 0.f, 1.f, 0.f, "Pattern Evolution", "%", 0.f, 100.f);
 
 		//multiple switch positions- does quantization of VOLTS or not
-		configSwitch(MODE_PARAM, 0.f, 2.f, 0.f, "Quantization:", {"None", "12-Tone", "Quartertone"});
+		configSwitch(QUANT_PARAM, 0.f, 2.f, 0.f, "Quantization:", {"None", "12-Tone", "Quartertone"});
 
 		//CV output is simply called VOLTS since it cud be a pitch or a control signal but both are VOLTS
 		configParam(VOLTS1_PARAM, 0.f, 10.f, 2.167f, "Set the Step CV output");
@@ -354,7 +359,7 @@ struct Trip : Module {
 
 		//set the current step output to its output and to all cv ouput
 		octave = params[OCTAVE_PARAM].getValue();
-		mode = params[MODE_PARAM].getValue();
+		quant = params[QUANT_PARAM].getValue();
 		try {
 			volts = params[getVoltsEnum(VOLTS + std::to_string(stepOrder[stepIndex]))].getValue();
 		}
@@ -368,12 +373,12 @@ struct Trip : Module {
 		voltsFraction = modf(volts, &voltsInteger);
 
 		//DEBUG("int = %f fraction = %f", voltsInteger, voltsFraction);
-		//DEBUG("mode = %d", mode);
-		//switch on mode to perform quantization of output (or not)
-		switch (mode) {
+		//DEBUG("quant = %d", quant);
+		//switch on quant value to perform quantization of output (or not)
+		switch (quant) {
 			case 0:
 			//do nothing since volts is already accurate
-			//DEBUG("mode = %d", 0);
+			//DEBUG("quant = %d", 0);
 			break;
 			case 1:
 			//12 tone
@@ -532,7 +537,7 @@ float quantize12tone(float v) {
 	for (int i = 0; i < 13; i++){
 		if (abs(v - twelveTone[i]) < min) {
 			min = abs(v - twelveTone[i]);
-			//DEBUG("mode = %f", 12.f);
+			//DEBUG("quant = %f", 12.f);
 			//found new minimum
 			qVal = twelveTone[i];
 		} 
@@ -632,11 +637,13 @@ struct TripWidget : ModuleWidget {
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(12.18, 22.307)), module, Trip::OCTAVE_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(36.406, 22.307)), module, Trip::MODULO_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(60.632, 22.307)), module, Trip::SKIP_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(84.859, 22.307)), module, Trip::REVERSAL_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(31.561, 22.307)), module, Trip::QUANT_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.942, 22.307)), module, Trip::MODULO_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(70.323, 22.307)), module, Trip::SKIP_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(89.704, 22.307)), module, Trip::REVERSAL_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(109.085, 22.307)), module, Trip::EVOL_PARAM));
 		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(12.18, 43.524)), module, Trip::MODE_PARAM));
+
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 59.928)), module, Trip::VOLTS1_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 59.928)), module, Trip::VOLTS2_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 59.928)), module, Trip::VOLTS3_PARAM));
