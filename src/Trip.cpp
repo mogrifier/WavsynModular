@@ -134,7 +134,7 @@ struct Trip : Module {
 		configSwitch(MODULO_PARAM, 0, 7, 0, "Starting Step:", {"0", "1", "2", "3", "4", "5", "6", "7"});
 
 		//skip a step (gate out is zero). Same chance for every step.
-		configParam(SKIP_PARAM, 0.f, 1.f, 0.f, "Chance to skip a step");
+		configParam(SKIP_PARAM, 0.f, 0.99f, 0.f, "Chance to skip a step", "%", 0.f, 101.01f);
 
 		//start a 8 instead of 1
 		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "Chance to reverse sequence");
