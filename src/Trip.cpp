@@ -249,88 +249,94 @@ struct Trip : Module {
 			return;
 		}
 
-		//moved declaration outside loop so it is valid in catch statement
-		int j = 0;
-		spaceTotal = 0.f;
-		//check if the space knobs have changed position and adjust the others
-		for (int i = 0; i < STEPS; i++) {
-			//check each setting against the prior setting
-			try {
-				//i and j are an index into stepOrder which keeps the order for use
-				stepSpace = params[getSpaceEnum(SPACE + std::to_string(stepOrder[i]))].getValue();
-				//skip a step if the value is really small. can't compare floats to zero
-				if (stepSpace < EPSILON) {
-					//DEBUG("skipping step %i", stepOrder[i]);
-					continue;
-				}
-				//triggers if the space knob has moved.
-				if (abs(stepSpace - spaceSetting[stepOrder[i] - 1]) > .0005f) {
-					//DEBUG("setting %f", spaceSetting[stepOrder[i] - 1]);
-					//DEBUG("stepSpace %f", stepSpace);
-					//the knob has moved since the last call to process beyond a deadband of .1 so change other values
-					for (j = 0; j < STEPS; j++) {
-						//modify all knob settings except knob i AND any knobs set to zero (since user wants zero)
-						//need polarity and magnitude of the change; weight the change
-						//the spaceInc value is computed for the knob that changed position. It is a small share that is
-						//multiplied by the amount of each step's space and applied to it.
-						//watch te index versus tehe enum values! ******
-						spaceInc = (stepSpace - spaceSetting[stepOrder[i] - 1]) / (1 - spaceSetting[stepOrder[i] - 1]);
-						//DEBUG("spaceInc = %f", spaceInc);
-						if (stepOrder[j] != stepOrder[i]) {
-							//polarity of spaceInc is important
-							params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(spaceSetting[stepOrder[j] - 1] - 
-								(spaceInc * spaceSetting[stepOrder[j] - 1]));
-							//DEBUG("applying %f to step %i",  spaceInc * spaceSetting[stepOrder[j] - 1], stepOrder[j]);
-							//protect against negative values
-							if (params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue() < 0.f)
-							{
-								params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(0.f);
-								//DEBUG("step = %i set to zero", stepOrder[j]);
-							}
-						}
-						spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
-						//update the spaceSetting[stepOrder[i] - 1] with the new values
-						spaceSetting[stepOrder[j] - 1] = params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
-						//DEBUG("step = %i settings = %f", stepOrder[j], spaceSetting[stepOrder[j] - 1]);
-					}
-					//DEBUG("******** spaceTotal =  %f", spaceTotal);
-					//note that there is only ONE mouse so only ONE knob can change in a call to process at a time
-					break;
-				}
-			}
-			catch( const std::invalid_argument& e ) {
-				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
-				DEBUG("lookup is bad; either %i or %i", stepOrder[i], stepOrder[j]);
-				//by returning, the module will do nothing, signaling a problem
-				return;
-			}
-		}
 
-		//check value- should always be 1 or so close it doesn't matter. Reason is you lose bar sync if not near 1.
-		if (spaceTotal > 1) {
-			float maxSpace = 0.f;
-			int maxSpaceStepIndex = 0;
-			//trim off some space from the steps with the most. If the rest of the code is accurate this should not do much
+		//check if in free or locked mode. Locked mode moves space knobs and keeps total under 100%. Free lets you do anything.
+		mode = params[MODE_PARAM].getValue();
+
+		if (mode == 0) {
+			//moved declaration outside loop so it is valid in catch statement
+			int j = 0;
+			spaceTotal = 0.f;
+			//check if the space knobs have changed position and adjust the others
 			for (int i = 0; i < STEPS; i++) {
-				if (spaceSetting[stepOrder[i] - 1] > maxSpace)
-				{
-					maxSpace = spaceSetting[stepOrder[i] - 1];
-					//stepOrder uses the index so 0..7
-					maxSpaceStepIndex = stepOrder[i] - 1;
+				//check each setting against the prior setting
+				try {
+					//i and j are an index into stepOrder which keeps the order for use
+					stepSpace = params[getSpaceEnum(SPACE + std::to_string(stepOrder[i]))].getValue();
+					//skip a step if the value is really small. can't compare floats to zero
+					if (stepSpace < EPSILON) {
+						//DEBUG("skipping step %i", stepOrder[i]);
+						continue;
+					}
+					//triggers if the space knob has moved.
+					if (abs(stepSpace - spaceSetting[stepOrder[i] - 1]) > .0005f) {
+						//DEBUG("setting %f", spaceSetting[stepOrder[i] - 1]);
+						//DEBUG("stepSpace %f", stepSpace);
+						//the knob has moved since the last call to process beyond a deadband of .1 so change other values
+						for (j = 0; j < STEPS; j++) {
+							//modify all knob settings except knob i AND any knobs set to zero (since user wants zero)
+							//need polarity and magnitude of the change; weight the change
+							//the spaceInc value is computed for the knob that changed position. It is a small share that is
+							//multiplied by the amount of each step's space and applied to it.
+							//watch te index versus tehe enum values! ******
+							spaceInc = (stepSpace - spaceSetting[stepOrder[i] - 1]) / (1 - spaceSetting[stepOrder[i] - 1]);
+							//DEBUG("spaceInc = %f", spaceInc);
+							if (stepOrder[j] != stepOrder[i]) {
+								//polarity of spaceInc is important
+								params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(spaceSetting[stepOrder[j] - 1] - 
+									(spaceInc * spaceSetting[stepOrder[j] - 1]));
+								//DEBUG("applying %f to step %i",  spaceInc * spaceSetting[stepOrder[j] - 1], stepOrder[j]);
+								//protect against negative values
+								if (params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue() < 0.f)
+								{
+									params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(0.f);
+									//DEBUG("step = %i set to zero", stepOrder[j]);
+								}
+							}
+							spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+							//update the spaceSetting[stepOrder[i] - 1] with the new values
+							spaceSetting[stepOrder[j] - 1] = params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+							//DEBUG("step = %i settings = %f", stepOrder[j], spaceSetting[stepOrder[j] - 1]);
+						}
+						//DEBUG("******** spaceTotal =  %f", spaceTotal);
+						//note that there is only ONE mouse so only ONE knob can change in a call to process at a time
+						break;
+					}
+				}
+				catch( const std::invalid_argument& e ) {
+					//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
+					DEBUG("lookup is bad; either %i or %i", stepOrder[i], stepOrder[j]);
+					//by returning, the module will do nothing, signaling a problem
+					return;
 				}
 			}
-			
-			try {
-				//trim the max space. maxSpaceStepIndex is the index to stepOrder, so -1 is NOT needed
-				float adjusted = spaceSetting[maxSpaceStepIndex] - (spaceTotal - 1);
-				//DEBUG("trimming step %i by %f", maxSpaceStep, adjusted);
-				params[getSpaceEnum(SPACE + std::to_string(stepOrder[maxSpaceStepIndex]))].setValue(adjusted);
-			}
-			catch (const std::invalid_argument& e) {
-				//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
-				//DEBUG("lookup is bad= %i", maxSpaceStep);
-				//by returning, the module will do nothing, signaling a problem
-				return;
+
+			//check value- should always be 1 or so close it doesn't matter. Reason is you lose bar sync if not near 1.
+			if (spaceTotal > 1) {
+				float maxSpace = 0.f;
+				int maxSpaceStepIndex = 0;
+				//trim off some space from the steps with the most. If the rest of the code is accurate this should not do much
+				for (int i = 0; i < STEPS; i++) {
+					if (spaceSetting[stepOrder[i] - 1] > maxSpace)
+					{
+						maxSpace = spaceSetting[stepOrder[i] - 1];
+						//stepOrder uses the index so 0..7
+						maxSpaceStepIndex = stepOrder[i] - 1;
+					}
+				}
+				
+				try {
+					//trim the max space. maxSpaceStepIndex is the index to stepOrder, so -1 is NOT needed
+					float adjusted = spaceSetting[maxSpaceStepIndex] - (spaceTotal - 1);
+					//DEBUG("trimming step %i by %f", maxSpaceStepIndex, adjusted);
+					params[getSpaceEnum(SPACE + std::to_string(stepOrder[maxSpaceStepIndex]))].setValue(adjusted);
+				}
+				catch (const std::invalid_argument& e) {
+					//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
+					//DEBUG("lookup is bad= %i", maxSpaceStep);
+					//by returning, the module will do nothing, signaling a problem
+					return;
+				}
 			}
 		}
 	
