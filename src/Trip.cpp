@@ -127,11 +127,11 @@ struct Trip : Module {
 		//restrict values to whole numbers
 		configSwitch(OCTAVE_PARAM, -3.f, 3.f, 0.f, "Add to VOLTS for each step", {"-3", "-2", "-1", "0", "1", "2", "3"});
 
-		//free or locked mode for how long the pattern is and if the space values add to 100% or not
-		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Space Mode:", {"Free", "Locked"});
+		//free or 1-bar mode for how long the pattern is and if the space values add to 100% or not
+		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Space Mode", {"Free", "1 Bar"});
 
 		//causes a shift in the pattern by changing where it starts- add the shift amount to get new starting step
-		configSwitch(MODULO_PARAM, 0, 7, 0, "Starting Step:", {"0", "1", "2", "3", "4", "5", "6", "7"});
+		configSwitch(MODULO_PARAM, 0, 7, 0, "Starting Step", {"0", "1", "2", "3", "4", "5", "6", "7"});
 
 		//skip a step (gate out is zero). Same chance for every step.
 		configParam(SKIP_PARAM, 0.f, 0.99f, 0.f, "Chance to skip a step", "%", 0.f, 101.01f);
@@ -143,7 +143,7 @@ struct Trip : Module {
 		configParam(EVOL_PARAM, 0.f, 1.f, 0.f, "Pattern Evolution", "%", 0.f, 100.f);
 
 		//multiple switch positions- does quantization of VOLTS or not
-		configSwitch(QUANT_PARAM, 0.f, 2.f, 0.f, "Quantization:", {"None", "12-Tone", "Quartertone"});
+		configSwitch(QUANT_PARAM, 0.f, 2.f, 0.f, "Quantization", {"None", "12-Tone", "Quartertone"});
 
 		//CV output is simply called VOLTS since it cud be a pitch or a control signal but both are VOLTS
 		configParam(VOLTS1_PARAM, 0.f, 10.f, 2.167f, "Set the Step CV output");
@@ -249,14 +249,25 @@ struct Trip : Module {
 			return;
 		}
 
-
-		//check if in free or locked mode. Locked mode moves space knobs and keeps total under 100%. Free lets you do anything.
+		//check if in free or 1-bar mode. 1-bar mode moves space knobs and keeps total under 100%. Free lets you do anything.
 		mode = params[MODE_PARAM].getValue();
-
-		if (mode == 0) {
+		spaceTotal = 0.f;
+		if (mode == 1) {
+			//if not in free mode, calaculate and adjust space parameters to keep legal and prepare for future adjustments
+			for (int j = 0; j < STEPS; j++) {
+				if (params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue() < 0.0f) {
+					params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(0.0f);
+				}
+			}
+			for (int j = 0; j < STEPS; j++) {
+				spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+			}
+		}
+		
+		/*
+		if (mode == 1 && spaceTotal > 1.0f) {
 			//moved declaration outside loop so it is valid in catch statement
 			int j = 0;
-			spaceTotal = 0.f;
 			//check if the space knobs have changed position and adjust the others
 			for (int i = 0; i < STEPS; i++) {
 				//check each setting against the prior setting
@@ -279,7 +290,7 @@ struct Trip : Module {
 							//the spaceInc value is computed for the knob that changed position. It is a small share that is
 							//multiplied by the amount of each step's space and applied to it.
 							//watch te index versus tehe enum values! ******
-							spaceInc = (stepSpace - spaceSetting[stepOrder[i] - 1]) / (1 - spaceSetting[stepOrder[i] - 1]);
+							spaceInc = 0.8f * (stepSpace - spaceSetting[stepOrder[i] - 1]) / (1 - spaceSetting[stepOrder[i] - 1]);
 							//DEBUG("spaceInc = %f", spaceInc);
 							if (stepOrder[j] != stepOrder[i]) {
 								//polarity of spaceInc is important
@@ -293,7 +304,7 @@ struct Trip : Module {
 									//DEBUG("step = %i set to zero", stepOrder[j]);
 								}
 							}
-							spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+							//spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
 							//update the spaceSetting[stepOrder[i] - 1] with the new values
 							spaceSetting[stepOrder[j] - 1] = params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
 							//DEBUG("step = %i settings = %f", stepOrder[j], spaceSetting[stepOrder[j] - 1]);
@@ -310,9 +321,12 @@ struct Trip : Module {
 					return;
 				}
 			}
-
+			*/
+			
+			/*
 			//check value- should always be 1 or so close it doesn't matter. Reason is you lose bar sync if not near 1.
-			if (spaceTotal > 1) {
+			if (spaceTotal > 1.0f) {
+				//DEBUG("space total %f", spaceTotal);
 				float maxSpace = 0.f;
 				int maxSpaceStepIndex = 0;
 				//trim off some space from the steps with the most. If the rest of the code is accurate this should not do much
@@ -327,9 +341,14 @@ struct Trip : Module {
 				
 				try {
 					//trim the max space. maxSpaceStepIndex is the index to stepOrder, so -1 is NOT needed
-					float adjusted = spaceSetting[maxSpaceStepIndex] - (spaceTotal - 1);
+					float adjustment = (spaceTotal - 1.0f);
 					//DEBUG("trimming step %i by %f", maxSpaceStepIndex, adjusted);
-					params[getSpaceEnum(SPACE + std::to_string(stepOrder[maxSpaceStepIndex]))].setValue(adjusted);
+					float trimmed = spaceSetting[maxSpaceStepIndex] - adjustment;
+					if (trimmed < 0) {
+						//don't let it go negative. 90% is arbitrary. Overall process is iterative, since next cycle a new max is found and adjusted
+						trimmed = spaceSetting[maxSpaceStepIndex] - adjustment * 0.8f;
+					}
+					params[getSpaceEnum(SPACE + std::to_string(stepOrder[maxSpaceStepIndex]))].setValue(trimmed);
 				}
 				catch (const std::invalid_argument& e) {
 					//one lookup value (i or j) is bad. All the try/catch blocks are just a developer aid, BTW.
@@ -339,6 +358,7 @@ struct Trip : Module {
 				}
 			}
 		}
+		*/
 	
 		count++;
 		stepCount++;
