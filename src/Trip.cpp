@@ -6,8 +6,8 @@ using namespace math;
 
 struct Trip : Module {
 	const int STEPS = 8;
-	int mode = 0;
 	int quant = 0;
+	int timefit = 1;
 	float volts = 0.f;
 	float voltsFraction = 0.f;
 	double voltsInteger = 0.f;
@@ -36,6 +36,7 @@ struct Trip : Module {
 	double clockVoltage = 0.0f;
 	//for reset sensing
 	dsp::SchmittTrigger trigger;
+	dsp::BooleanTrigger timefitButtonTrigger;
 	bool reset = false;
 
 	//for enum use
@@ -68,7 +69,7 @@ struct Trip : Module {
 		SKIP_PARAM,
 		REVERSAL_PARAM,
 		EVOL_PARAM,
-		MODE_PARAM,
+		TIMEFIT_PARAM,
 		VOLTS1_PARAM,
 		VOLTS2_PARAM,
 		VOLTS3_PARAM,
@@ -93,6 +94,7 @@ struct Trip : Module {
 		GATE6_PARAM,
 		GATE7_PARAM,
 		GATE8_PARAM,
+		TIMEFITBUTTON_PARAM,
 		PARAMS_LEN
 	};
 	enum InputId {
@@ -125,10 +127,12 @@ struct Trip : Module {
 		//for each step for the random event to happen, modifiying the step or the sequence
 
 		//restrict values to whole numbers
-		configSwitch(OCTAVE_PARAM, -3.f, 3.f, 0.f, "Add to VOLTS for each step", {"-3", "-2", "-1", "0", "1", "2", "3"});
+		configSwitch(OCTAVE_PARAM, -3, 3, 0, "Add to VOLTS for each step", {"-3", "-2", "-1", "0", "1", "2", "3"});
 
 		//free or 1-bar mode for how long the pattern is and if the space values add to 100% or not
-		configSwitch(MODE_PARAM, 0.f, 1.f, 0.f, "Space Mode", {"Free", "1 Bar"});
+		configSwitch(TIMEFIT_PARAM, 1, 4, 1, "Time Fit", {"1 Bar", "2 Bars", "3 Bars", "4 Bars"});
+
+		configButton(TIMEFITBUTTON_PARAM, "Time Fit");
 
 		//causes a shift in the pattern by changing where it starts- add the shift amount to get new starting step
 		configSwitch(MODULO_PARAM, 0, 7, 0, "Starting Step", {"0", "1", "2", "3", "4", "5", "6", "7"});
@@ -194,6 +198,7 @@ struct Trip : Module {
 
 	void process(const ProcessArgs& args) override {
 		
+		//FIXME not needed anymore since spaceSetting is not used.
 		if (firstRun) {
 		//one-time setup code
 			int i = 0;
@@ -213,6 +218,14 @@ struct Trip : Module {
 			firstRun = false;
 		}
 
+		bool timefitButtonTriggered = timefitButtonTrigger.process(params[TIMEFITBUTTON_PARAM].getValue());
+		if (timefitButtonTriggered) {
+			//get current time fit setting (number of bars)
+			timefit = params[TIMEFIT_PARAM].getValue();
+			//scale all the space settings to fit the number of bars selected
+			//DEBUG("timefit %i", timefit);
+			spaceScale(timefit);
+		}
 
 		//need to get a tempo from the clock input
 		if (inputs[CLOCK_INPUT].isConnected()){
@@ -249,6 +262,7 @@ struct Trip : Module {
 			return;
 		}
 
+		/*
 		//check if in free or 1-bar mode. 1-bar mode moves space knobs and keeps total under 100%. Free lets you do anything.
 		mode = params[MODE_PARAM].getValue();
 		spaceTotal = 0.f;
@@ -263,6 +277,7 @@ struct Trip : Module {
 				spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
 			}
 		}
+		*/
 		
 		/*
 		if (mode == 1 && spaceTotal > 1.0f) {
@@ -587,6 +602,31 @@ float quantize24tone(float v) {
 	return qVal;
 }
 
+/* Rescale all the space settings that are non-zero to fit and fill the number of bars.
+spaceSetting and stepOrder are needed. */
+void spaceScale(int bars) {
+	//need the total space 
+	spaceTotal = 0.f;
+	for (int j = 0; j < STEPS; j++) {
+		spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+	}
+
+	float scale = bars / spaceTotal;
+	//DEBUG("original space = %f, bars = %i, scale = %f", spaceTotal, bars, scale);
+	//reset spaceTotal and recalculate
+	spaceTotal = 0.f;
+	for (int j = 0; j < STEPS; j++) {
+		float rescaled = params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue() * scale;
+		//DEBUG("rescaled = %f", rescaled);
+		if (rescaled > 1.f) {
+			rescaled = 1.f;
+		}
+		params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(rescaled);
+		spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+	}
+	//DEBUG("rescaled space = %f", spaceTotal);
+}
+
 //bunch of utility methods to make it easy to use a string built in a loop to get 
 //corresponding enum values
 ParamId getVoltsEnum(const std::string lookup) {
@@ -668,8 +708,11 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(70.323, 22.307)), module, Trip::SKIP_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(89.704, 22.307)), module, Trip::REVERSAL_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(109.085, 22.307)), module, Trip::EVOL_PARAM));
-		addParam(createParamCentered<RoundLargeBlackKnob>(mm2px(Vec(12.18, 43.524)), module, Trip::MODE_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(12.18, 41.473)), module, Trip::TIMEFIT_PARAM));
 
+		//timefit button
+		addParam(createParamCentered<VCVLightButton<MediumSimpleLight<GreenLight>>>(mm2px(Vec(23, 41.473)), module, Trip::TIMEFITBUTTON_PARAM));
+	
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 59.928)), module, Trip::VOLTS1_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 59.928)), module, Trip::VOLTS2_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 59.928)), module, Trip::VOLTS3_PARAM));
