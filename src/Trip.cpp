@@ -150,14 +150,14 @@ struct Trip : Module {
 		configSwitch(QUANT_PARAM, 0.f, 2.f, 0.f, "Quantization", {"None", "12-Tone", "Quartertone"});
 
 		//CV output is simply called VOLTS since it cud be a pitch or a control signal but both are VOLTS
-		configParam(VOLTS1_PARAM, 0.f, 10.f, 2.167f, "Set the Step CV output");
-		configParam(VOLTS2_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
-		configParam(VOLTS3_PARAM, 0.f, 10.f, 2.33f, "Set the Step CV output");
-		configParam(VOLTS4_PARAM, 0.f, 10.f, 2.75f, "Set the Step CV output");
-		configParam(VOLTS5_PARAM, 0.f, 10.f, 2.5f, "Set the Step CV output");
-		configParam(VOLTS6_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
-		configParam(VOLTS7_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
-		configParam(VOLTS8_PARAM, 0.f, 10.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS1_PARAM, -3.f, 6.f, 2.167f, "Set the Step CV output");
+		configParam(VOLTS2_PARAM, -3.f, 6.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS3_PARAM, -3.f, 6.f, 2.33f, "Set the Step CV output");
+		configParam(VOLTS4_PARAM, -3.f, 6.f, 2.75f, "Set the Step CV output");
+		configParam(VOLTS5_PARAM, -3.f, 6.f, 2.5f, "Set the Step CV output");
+		configParam(VOLTS6_PARAM, -3.f, 6.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS7_PARAM, -3.f, 6.f, 5.f, "Set the Step CV output");
+		configParam(VOLTS8_PARAM, -3.f, 6.f, 5.f, "Set the Step CV output");
 
 		//this parameter specifies the percentage of 1 BAR that a step uses. Must always total 100%,
 		//so turning one know adjusts the others to compensate.
@@ -433,12 +433,13 @@ struct Trip : Module {
 
 		//DEBUG("volts = %f", volts);
 		try {
-			//add in the octave value bias but only if all will STAY IN RANGE 0-10. Don't clamp. Reduce all.
-		 	if (getMaxVolts() + octave > 10.f) {
+			//add in the octave value bias but only if all will STAY IN RANGE -3 to 6. Don't clamp, just change octave value.
+			//what about negative? nothing below -3v changes pitch with some VCO's. Ignore?
+		 	if (getMaxVolts() + octave > 6.f) {
 				//out of range. Reduce octave setting appropriately.
-				if (getMaxVolts() + octave - 1 > 10.f) {
+				if (getMaxVolts() + octave - 1 > 6.f) {
 				//out of range. Reduce octave setting appropriately.
-				 	if (getMaxVolts() + octave - 2 > 10.f) {
+				 	if (getMaxVolts() + octave - 2 > 6.f) {
 						//set ocatve to zero since +3 is too high for settings (we know octave is 3 at this point)
 						params[OCTAVE_PARAM].setValue(0.f);
 					}
