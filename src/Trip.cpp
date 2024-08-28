@@ -130,7 +130,7 @@ struct Trip : Module {
 		configSwitch(OCTAVE_PARAM, -3, 3, 0, "Add to VOLTS for each step", {"-3", "-2", "-1", "0", "1", "2", "3"});
 
 		//free or 1-bar mode for how long the pattern is and if the space values add to 100% or not
-		configSwitch(TIMEFIT_PARAM, 1, 4, 1, "Time Fit", {"1 Bar", "2 Bars", "3 Bars", "4 Bars"});
+		configSwitch(TIMEFIT_PARAM, 1, 8, 1, "Time Fit", {"1 Bar", "2 Bars", "3 Bars", "4 Bars", "5 Bars", "6 Bars", "7 Bars", "8 Bars"});
 
 		configButton(TIMEFITBUTTON_PARAM, "Time Fit");
 
@@ -618,9 +618,6 @@ void spaceScale(int bars) {
 	for (int j = 0; j < STEPS; j++) {
 		float rescaled = params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue() * scale;
 		//DEBUG("rescaled = %f", rescaled);
-		if (rescaled > 1.f) {
-			rescaled = 1.f;
-		}
 		params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].setValue(rescaled);
 		spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
 	}
