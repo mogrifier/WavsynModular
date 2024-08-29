@@ -105,7 +105,6 @@ struct Trip : Module {
 	enum OutputId {
 		ALLCVOUT_OUTPUT,
 		GATEOUT_OUTPUT,
-		TRIGGER_OUTPUT,
 		CV1_OUTPUT,
 		CV2_OUTPUT,
 		CV3_OUTPUT,
@@ -193,7 +192,6 @@ struct Trip : Module {
 		configInput(RESET_INPUT, "Reset the sequencer at Step 1 on a trigger");
 		configOutput(ALLCVOUT_OUTPUT, "All steps' output");
 		configOutput(GATEOUT_OUTPUT, "Gate signal for each step");
-		configOutput(TRIGGER_OUTPUT, "Trigger output at start of each step");	
 	}
 
 	void process(const ProcessArgs& args) override {
@@ -706,10 +704,10 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(70.323, 22.307)), module, Trip::SKIP_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(89.704, 22.307)), module, Trip::REVERSAL_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(109.085, 22.307)), module, Trip::EVOL_PARAM));
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(12.18, 41.473)), module, Trip::TIMEFIT_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(10.41, 41.473)), module, Trip::TIMEFIT_PARAM));
 
 		//timefit button
-		addParam(createParamCentered<VCVLightButton<MediumSimpleLight<GreenLight>>>(mm2px(Vec(23, 41.473)), module, Trip::TIMEFITBUTTON_PARAM));
+		addParam(createParamCentered<VCVLightButton<MediumSimpleLight<GreenLight>>>(mm2px(Vec(22.05, 41.473)), module, Trip::TIMEFITBUTTON_PARAM));
 	
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 59.928)), module, Trip::VOLTS1_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 59.928)), module, Trip::VOLTS2_PARAM));
@@ -740,12 +738,11 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(99.916, 91.76)), module, Trip::GATE7_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(112.283, 91.76)), module, Trip::GATE8_PARAM));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(37.57, 41.473)), module, Trip::CLOCK_INPUT));
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(58.333, 41.473)), module, Trip::RESET_INPUT));
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(42.5, 41.473)), module, Trip::CLOCK_INPUT));
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(63.41, 41.473)), module, Trip::RESET_INPUT));
 
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(76.005, 41.473)), module, Trip::ALLCVOUT_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(93.997, 41.473)), module, Trip::GATEOUT_OUTPUT));
-		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(111.989, 41.473)), module, Trip::TRIGGER_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(89.52, 41.473)), module, Trip::ALLCVOUT_OUTPUT));
+		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(109.07, 41.473)), module, Trip::GATEOUT_OUTPUT));
 
 		//add lights above the outputs
 		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(25.712, 102)), module, Trip::STEP1));
