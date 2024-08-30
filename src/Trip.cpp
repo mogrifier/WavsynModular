@@ -116,7 +116,7 @@ struct Trip : Module {
 		OUTPUTS_LEN
 	};
 	enum LightId {
-		STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, STEP7, STEP8, LIGHTS_LEN
+		STEP1, STEP2, STEP3, STEP4, STEP5, STEP6, STEP7, STEP8, DIRTY, LIGHTS_LEN
 	};
 
 	Trip() {
@@ -222,6 +222,21 @@ struct Trip : Module {
 			//scale all the space settings to fit the number of bars selected
 			//DEBUG("timefit %i", timefit);
 			spaceScale(timefit);
+		}
+
+		//need the total space for scling and the dirty light
+		spaceTotal = 0.f;
+		for (int j = 0; j < STEPS; j++) {
+			spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
+		}
+
+		if (abs(spaceTotal - 1.f) > EPSILON) {
+			//turn on the dirty light
+			lights[DIRTY].setBrightness(1.f);
+		}
+		else {
+			//turn off the dirty light
+			lights[DIRTY].setBrightness(0.f);
 		}
 
 		//need to get a tempo from the clock input
@@ -496,11 +511,6 @@ float quantize24tone(float v) {
 /* Rescale all the space settings that are non-zero to fit and fill the number of bars.
 spaceSetting and stepOrder are needed. Keep space in range 0-100. */
 void spaceScale(int bars) {
-	//need the total space 
-	spaceTotal = 0.f;
-	for (int j = 0; j < STEPS; j++) {
-		spaceTotal += params[getSpaceEnum(SPACE + std::to_string(stepOrder[j]))].getValue();
-	}
 	//rescale to make total ~1
 	float scale = 1.f / spaceTotal;
 	//DEBUG("original space = %f, bars = %i, scale = %f", spaceTotal, bars, scale);
@@ -599,8 +609,10 @@ struct TripWidget : ModuleWidget {
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(10.41, 41.473)), module, Trip::TIMEFIT_PARAM));
 
 		//timefit button
-		addParam(createParamCentered<VCVLightButton<MediumSimpleLight<GreenLight>>>(mm2px(Vec(22.05, 41.473)), module, Trip::TIMEFITBUTTON_PARAM));
-	
+		addParam(createParamCentered<VCVLightButton<MediumSimpleLight<GreenLight>>>(mm2px(Vec(22.05, 39)), module, Trip::TIMEFITBUTTON_PARAM));
+		//dirty light
+		addChild(createLightCentered<LargeLight<BlueLight>>(mm2px(Vec(22.05, 46.5)), module, Trip::DIRTY));
+
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(25.712, 59.928)), module, Trip::VOLTS1_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(38.079, 59.928)), module, Trip::VOLTS2_PARAM));
 		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(50.446, 59.928)), module, Trip::VOLTS3_PARAM));
