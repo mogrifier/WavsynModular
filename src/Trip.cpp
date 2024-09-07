@@ -471,9 +471,62 @@ struct Trip : Module {
 				//rewrite the current pattern in stepOrder backwards
 				std::reverse(std::begin(stepOrder), std::end(stepOrder));
 			}
+			//check for evolution changes and perform them
+			if (random::uniform() <= params[EVOL_PARAM].getValue()) {
+				evolve();
+			}
 		}
 	}
 
+/*
+Trigger evolution of the pattern. Only 1 change is made per sequence.
+*/
+void evolve() {
+	std::random_device rd; // obtain a random number from hardware
+    std::mt19937 gen(rd()); // seed the generator
+    std::uniform_int_distribution<> distr(0, 6); // define the range
+	int mutant = distr(gen);
+	//get a step number and set up other random number generators 
+	std::uniform_int_distribution<> distrStep(1, 8);
+	int evolStep = distrStep(gen);
+	std::uniform_int_distribution<> distrOct(-3, 6);
+	std::uniform_int_distribution<> distrMod(0, 7);
+
+	//Read and modify the parameter pointed to by value of mutant. Must respect ranges.
+	// build the evolution amount based on current value to guarantee simple and legal change.
+	//simplifies programming if choosing current value (randomly) is allowed so that's what I am doing.
+	switch (mutant) {
+		case 0:
+			//oct -3 to 6
+			params[OCTAVE_PARAM].setValue(distrOct(gen));
+			break;
+		case 1:
+			//mod 0 - 7
+			params[MODULO_PARAM].setValue(distrMod(gen));
+			break;
+		case 2:
+			//skip 0 - 40%
+			params[SKIP_PARAM].setValue(random::uniform() * 0.4f);
+			break;
+		case 3:
+			//reverse  0 - 100%
+			params[REVERSAL_PARAM].setValue(random::uniform());
+			break;
+		case 4:
+			//volts- using evolStep. change to -3 to 6
+			params[getVoltsEnum(VOLTS + std::to_string(evolStep))].setValue((random::uniform() * 9 - 3));
+			//DEBUG("volts = %f", params[getVoltsEnum(VOLTS + std::to_string(evolStep))].getValue());
+			break;
+		case 5: 
+			//space- using evolStep. change to  0 - 100%
+			params[getSpaceEnum(SPACE + std::to_string(evolStep))].setValue(0.05f + random::uniform() * 0.95f);
+			break;
+		case 6:
+			//gate- using evolStep. change to  0 - 100%
+			params[getGateEnum(GATE + std::to_string(evolStep))].setValue(0.2f + random::uniform() * 0.8f);
+			break;
+	}
+}
 
 //get max voltage for all steps being used (space > 0). 
 float getMaxVolts() {
