@@ -19,4 +19,6 @@ In this document, Ctrl means Cmd on Mac.
 - PLEATS and STRANGE have been published to the VCV Library
 ### Version 2.0.1 new module work
 - TRIP basic skeleton UI added
+### Version 2.0.1 TRIP release complete
+- TRIP plus presets and the manual are ready for release
 
