@@ -149,7 +149,7 @@ struct Trip : Module {
 		configParam(SKIP_PARAM, 0.f, 0.99f, 0.f, "Chance to skip a step", "%", 0.f, 101.01f);
 
 		//start a 8 instead of 1
-		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "Chance to reverse sequence");
+		configParam(REVERSAL_PARAM, 0.f, 1.f, 0.f, "Chance to reverse sequence", "%", 0.f, 100.f);
 
 		//maybe a switch with settings 1-8?. Adjust SPACE so the times still add up to 100%
 		configParam(EVOL_PARAM, 0.f, 1.f, 0.f, "Pattern Evolution", "%", 0.f, 100.f);
@@ -188,27 +188,27 @@ struct Trip : Module {
 		configParam(GATE7_PARAM, 0.f, 0.99f, 0.f, "Gate duration", "%", 0.f, 101.01f);
 		configParam(GATE8_PARAM, 0.f, 0.99f, 0.f, "Gate duration", "%", 0.f, 101.01f);
 
-		configOutput(CV1_OUTPUT, "Step 1 Individual CV Out");
-		configOutput(CV2_OUTPUT, "Step 2 Individual CV Out");
-		configOutput(CV3_OUTPUT, "Step 3 Individual CV Out");
-		configOutput(CV4_OUTPUT, "Step 4 Individual CV Out");
-		configOutput(CV5_OUTPUT, "Step 5 Individual CV Out");
-		configOutput(CV6_OUTPUT, "Step 6 Individual CV Out");
-		configOutput(CV7_OUTPUT, "Step 7 Individual CV Out");
-		configOutput(CV8_OUTPUT, "Step 8 Individual CV Out");
+		configOutput(CV1_OUTPUT, "Step 1 Individual CV");
+		configOutput(CV2_OUTPUT, "Step 2 Individual CV");
+		configOutput(CV3_OUTPUT, "Step 3 Individual CV");
+		configOutput(CV4_OUTPUT, "Step 4 Individual CV");
+		configOutput(CV5_OUTPUT, "Step 5 Individual CV");
+		configOutput(CV6_OUTPUT, "Step 6 Individual CV");
+		configOutput(CV7_OUTPUT, "Step 7 Individual CV");
+		configOutput(CV8_OUTPUT, "Step 8 Individual CV");
 
-		configOutput(G1_OUTPUT, "Step 1 Individual Gate Out");
-		configOutput(G2_OUTPUT, "Step 2 Individual Gate Out");
-		configOutput(G3_OUTPUT, "Step 3 Individual Gate Out");
-		configOutput(G4_OUTPUT, "Step 4 Individual Gate Out");
-		configOutput(G5_OUTPUT, "Step 5 Individual Gate Out");
-		configOutput(G6_OUTPUT, "Step 6 Individual Gate Out");
-		configOutput(G7_OUTPUT, "Step 7 Individual Gate Out");
-		configOutput(G8_OUTPUT, "Step 8 Individual Gate Out");
+		configOutput(G1_OUTPUT, "Step 1 Individual Gate");
+		configOutput(G2_OUTPUT, "Step 2 Individual Gate");
+		configOutput(G3_OUTPUT, "Step 3 Individual Gate");
+		configOutput(G4_OUTPUT, "Step 4 Individual Gate");
+		configOutput(G5_OUTPUT, "Step 5 Individual Gate");
+		configOutput(G6_OUTPUT, "Step 6 Individual Gate");
+		configOutput(G7_OUTPUT, "Step 7 Individual Gate");
+		configOutput(G8_OUTPUT, "Step 8 Individual Gate");
 
 		configInput(CLOCK_INPUT, "External clock for sequencer tempo");
-		configInput(RESET_INPUT, "Reset the sequencer at Step 1 on a trigger");
-		configOutput(ALLCVOUT_OUTPUT, "All steps' output");
+		configInput(RESET_INPUT, "Reset the sequencer to Step 1 on a trigger");
+		configOutput(ALLCVOUT_OUTPUT, "CV signal for each step");
 		configOutput(GATEOUT_OUTPUT, "Gate signal for each step");
 	}
 
