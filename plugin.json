@@ -41,6 +41,15 @@
         "sequencer",
         "random"
       ]
+    },
+    {
+      "slug": "Smitty",
+      "name": "Smitty",
+      "description": "VCO with dual sine-like outputs plus a shape control for adding harmonics.",
+      "tags": [
+        "oscillator",
+        "waveshaper"
+      ]
     }
   ]
 }

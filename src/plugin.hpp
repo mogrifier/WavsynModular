@@ -12,4 +12,5 @@ extern Plugin* pluginInstance;
 extern Model* modelPleats;
 extern Model* modelStrange;
 extern Model* modelTrip;
+extern Model* modelSmitty;
 
