@@ -46,7 +46,8 @@ struct Smitty : Module {
 	bool bufferFull = false;
 	float unfiltered = 0.f;
 
-	Biquad *lpFilter = new Biquad(bq_type_peak, 300 / 48000, 0, -6);	// create a Biquad, lpFilter at 12-13KHZ
+	Biquad *lpFilter = new Biquad(bq_type_lowpass, 0.1f, 0, 0) ; //default is lowpass 
+	//bq_type_lowpass, 300 / 48000, 0, -6);	// create a Biquad, lpFilter at 12-13KHZ
 
 
 	Smitty(){
