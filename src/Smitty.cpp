@@ -1,4 +1,5 @@
 #include "plugin.hpp"
+#include "Biquad.h"
 
 using namespace math;
 
@@ -30,6 +31,23 @@ struct Smitty : Module {
 	float oldFreq = 261.3f;
 	float omegaT = 0.f;
 	float epsilon = 0.f;
+	float audio1 = 0.f;
+	float audio2 = 0.f;
+	bool skip = false;
+	int skipCount = 0;
+	const int MAXSKIP = 25;
+
+	//LPF variables
+	const int SIZE = 5000;
+	float buffer[5000];
+	int index = 0;
+	int count = 0;
+	int circularIndex = 0;
+	bool bufferFull = false;
+	float unfiltered = 0.f;
+
+	Biquad *lpFilter = new Biquad(bq_type_peak, 300 / 48000, 0, -6);	// create a Biquad, lpFilter at 12-13KHZ
+
 
 	Smitty(){
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -38,10 +56,15 @@ struct Smitty : Module {
 		configInput(VOCT_INPUT, "V/OCT");
 		configOutput(AUDIO1_OUTPUT, "audio 1");
 		configOutput(AUDIO2_OUTPUT, "audio 2");
+		//init buffer
+		for (int i = 0; i < SIZE; i++){
+			buffer[i] = 0.1f;
+		}
 	}
 
 
 	void process(const ProcessArgs& args) override {
+
 
 		//Smith VCO approach
 		cv = inputs[VOCT_INPUT].getVoltage();
@@ -60,6 +83,7 @@ struct Smitty : Module {
 			shaper = 1.f;
 			yq = 1.f;
 			myq = 1.f;
+			skip = true;
 		}
 
 		yq = myq - epsilon * shaper;
@@ -82,9 +106,58 @@ struct Smitty : Module {
 		myq = yq;
 		shaper = y1;
 
-		outputs[AUDIO1_OUTPUT].setVoltage(5.f * sin(y1));
+		audio1 = 5.f * sin(y1);
+		audio2 = 5.f * sin(yq);
+
+		if (skip)
+		{
+			skipCount += 1;
+			if (skipCount < MAXSKIP){
+				audio1 = 0;
+				audio2 = 0;
+			}
+			else {
+				skip = false;
+				skipCount = 0;
+			}
+		}
+
+		unfiltered = audio1;
+		//fill array
+		buffer[index] = audio1;
+		index++;
+		if (index >= SIZE) {
+			index = 0;
+			bufferFull = true;
+		}
+
+		if (bufferFull) {
+			//filter the buffer, starting from index and wrapping around (circular buffer)
+			circularIndex = index;
+			while (count <= SIZE) {
+				//loop 500 times
+				//DEBUG("out = %f", out);
+				buffer[circularIndex % SIZE] = (float)lpFilter->process(buffer[circularIndex % SIZE]);
+				circularIndex++;
+				if (circularIndex == 50000){
+					//don't let the int value grow unbounded
+					circularIndex = 0;
+				}
+				count++;
+			}
+			count = 0;	
+		}
+
+		//get latest filtered value
+		audio1 = buffer[index];
+
+		//debug and compare
+		//DEBUG("filtered vs unfiltered = %f, %f", audio1, unfiltered);
+
+
+		outputs[AUDIO1_OUTPUT].setVoltage(unfiltered);
 		//outputs are different and complimentary- best in stereo!
-		outputs[AUDIO2_OUTPUT].setVoltage(5.f * sin(yq));
+		outputs[AUDIO2_OUTPUT].setVoltage(audio2);
 
 		oldFreq = freq;
 	}

@@ -1,5 +1,5 @@
 #include "plugin.hpp"
-
+#include "Biquad.h"
 
 struct Pleats : Module {
 
@@ -37,8 +37,21 @@ struct Pleats : Module {
 	float foldAmount = 0.f;
 	//for computing new output value from folding
 	float out = 0.f;
+	float in = 0.f;
 	float delta = 0.f;
 
+	//LPF variables
+	const int SIZE = 5000;
+	float buffer[5000];
+	int index = 0;
+	int count = 0;
+	int circularIndex = 0;
+	bool bufferFull = false;
+	float unfiltered = 0.f;
+
+	Biquad *lpFilter = new Biquad(bq_type_lowpass, 12000 / 48000, 1.0, 1.0);	// create a Biquad, lpFilter at 12-13KHZ
+
+	
 	Pleats() {
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN);
 
@@ -54,7 +67,14 @@ struct Pleats : Module {
 		configParam(SET_PARAM, 0.f, 10.f, 0.f, "Setpoint", " V");
 		configParam(AMT_PARAM, 0.f, 1.f, 0.5f, "Amount", "%", 0, 100);
 		configParam(BIAS_PARAM, 0.f, 5.f, 0.f, "Bias", " V");
+
+		//init buffer
+		for (int i = 0; i < SIZE; i++){
+			buffer[i] = 0.1f;
+		}
 	}
+
+
 
 	/*
 	Called oonce per sample, so very quickly. Must store sample buffer somewhere to do something useful. Hmm.
@@ -105,12 +125,40 @@ struct Pleats : Module {
 			}	
 		}
 
-		//what about negative half
+		unfiltered = out;
+		//fill array
+		buffer[index] = out;
+		index++;
+		if (index >= SIZE) {
+			index = 0;
+			bufferFull = true;
+		}
 
-		//output <= 0 cause no sound output. D'oh.
+		if (bufferFull) {
+			//filter the buffer, starting from index and wrapping around (circular buffer)
+			circularIndex = index;
+			while (count <= SIZE) {
+				//loop 500 times
+				//DEBUG("out = %f", out);
+				buffer[circularIndex % SIZE] = (float)lpFilter->process(buffer[circularIndex % SIZE]);
+				circularIndex++;
+				if (circularIndex == 50000){
+					//don't let the int value grow unbounded
+					circularIndex = 0;
+				}
+				count++;
+			}
+			count = 0;	
+		}
+
+		//get latest filtered value
+		out = buffer[index];
+
+		//debug and compare
+		//DEBUG("filtered vs unfiltered = %f, %f", out, unfiltered);
 
 		// Set output
-		outputs[AUDIO_OUTPUT].setVoltage(out, 0);
+		outputs[AUDIO_OUTPUT].setVoltage(unfiltered, 0);
 		outputs[AUDIO_OUTPUT].setChannels(1);
 	}
 };
