@@ -1,5 +1,4 @@
 #include "plugin.hpp"
-#include "Biquad.h"
 
 using namespace math;
 
@@ -37,18 +36,20 @@ struct Smitty : Module {
 	int skipCount = 0;
 	const int MAXSKIP = 25;
 
-	//LPF variables
-	const int SIZE = 5000;
-	float buffer[5000];
+	//for buffers and FFT
+	static const int SIZE = 1024;
+	static const int LIMIT = 256;
+	float circularBuffer[SIZE];
+	alignas(16) float linearBuffer[SIZE] = {};
+	alignas(16) float fftOutput[SIZE] = {};
+	alignas(16) float freqBuffer[SIZE * 2];
+	alignas(16) float empty[768] = {0.f};
 	int index = 0;
 	int count = 0;
 	int circularIndex = 0;
-	bool bufferFull = false;
-	float unfiltered = 0.f;
-
-	Biquad *lpFilter = new Biquad(bq_type_lowpass, 0.1f, 0, 0) ; //default is lowpass 
-	//bq_type_lowpass, 300 / 48000, 0, -6);	// create a Biquad, lpFilter at 12-13KHZ
-
+	bool circularBufferFull = false;
+	float original = 0.f;
+	alignas(16) float antiAliased[SIZE] = {};
 
 	Smitty(){
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -57,16 +58,17 @@ struct Smitty : Module {
 		configInput(VOCT_INPUT, "V/OCT");
 		configOutput(AUDIO1_OUTPUT, "audio 1");
 		configOutput(AUDIO2_OUTPUT, "audio 2");
-		//init buffer
+		//init circularBuffer
 		for (int i = 0; i < SIZE; i++){
-			buffer[i] = 0.1f;
+			circularBuffer[i] = 0.1f;
 		}
+
 	}
 
 
 	void process(const ProcessArgs& args) override {
 
-
+		dsp::RealFFT outFFT(SIZE);
 		//Smith VCO approach
 		cv = inputs[VOCT_INPUT].getVoltage();
 			
@@ -110,62 +112,84 @@ struct Smitty : Module {
 		audio1 = 5.f * sin(y1);
 		audio2 = 5.f * sin(yq);
 
-		if (skip)
-		{
-			skipCount += 1;
-			if (skipCount < MAXSKIP){
-				audio1 = 0;
-				audio2 = 0;
-			}
-			else {
-				skip = false;
-				skipCount = 0;
-			}
-		}
 
-		unfiltered = audio1;
+		original = audio1;
 		//fill array
-		buffer[index] = audio1;
+		circularBuffer[index] = audio1;
 		index++;
+		//this creates a circular circularBuffer that just keeps filling with latest data
 		if (index >= SIZE) {
 			index = 0;
-			bufferFull = true;
+			circularBufferFull = true;
 		}
 
-		if (bufferFull) {
-			//filter the buffer, starting from index and wrapping around (circular buffer)
-			circularIndex = index;
-			while (count <= SIZE) {
-				//loop 500 times
-				//DEBUG("out = %f", out);
-				buffer[circularIndex % SIZE] = (float)lpFilter->process(buffer[circularIndex % SIZE]);
-				circularIndex++;
-				if (circularIndex == 50000){
-					//don't let the int value grow unbounded
-					circularIndex = 0;
-				}
-				count++;
+		//circular buffer has two parts. Their order needs to be flipped to put in time linear order
+		//current index is the start of the new array  since it was already incremented (it has the oldest data)
+		if (circularBufferFull) {
+			//convert circularBuffer to linear ordered buffer and pass to FFT
+			std::memcpy(linearBuffer, &circularBuffer[index], (SIZE - (index)) * sizeof(float));
+			if (index > 0){
+				//copy in buffer from 0
+				std::memcpy(linearBuffer + index, &circularBuffer[0], index * sizeof(float));
 			}
-			count = 0;	
+
+			//compute the real, ordered FFT
+			outFFT.rfft(linearBuffer, fftOutput);
+			//access the first few bins and create sine waves; add them up to recreate the sample needed
+
+			//bandlimit the signal by setting everything above a certain point to zero, use memcpy to zero it.
+			//std::memcpy(fftOutput + SIZE/2, empty, SIZE / 2 * sizeof(float));
+			//bandlimit the data
+			for (int i = LIMIT; i < SIZE; i++){
+				fftOutput[i] = 0;
+			}		
+			//compute inverse FFT to get one sample. Presumably without any aliasing components
+
+			audio1 = computeIFFTSampleIgnoringComplex(fftOutput, freq, args.sampleRate);
+			//outFFT.irfft(fftOutput, antiAliased);
+			//audio1 = antiAliased[0];
+
+			
 		}
 
-		//get latest filtered value
-		audio1 = buffer[index];
-
-		//debug and compare
-		//DEBUG("filtered vs unfiltered = %f, %f", audio1, unfiltered);
-
-
-		outputs[AUDIO1_OUTPUT].setVoltage(unfiltered);
+		//output will be original sample for first 1024 at startup; after that will be the antialiased output
+		outputs[AUDIO1_OUTPUT].setVoltage(audio1);
 		//outputs are different and complimentary- best in stereo!
 		outputs[AUDIO2_OUTPUT].setVoltage(audio2);
 
 		oldFreq = freq;
 	}
+
+
+
+// Function to compute a single time-domain sample from FFT data ignoring complex values
+float computeIFFTSampleIgnoringComplex(float * fftOutput, float f, float sr ) {
+
+    float sample = 0.f;
+    float angle;
+
+//whole point is to use the harmonics based on the current frequency- not every single frequency bin!
+//bin center freq is current sample rate/SIZE. Grab close values?? WTF
+	float cf = sr / SIZE;
+	//what is nearest bin to freq??
+	int bin = (int)f/cf;
+	int harmonics[6] = {10, 18, 26, 34, 42, 50};
+    for (int k = 0; k < 6; k++) {
+        angle = 2 * M_PI * k  / SIZE;
+        sample += fftOutput[harmonics[k]] * std::sin(angle);
+    }
+
+	//compute for a single frequency to establish truth- index 20
+	//angle = 2 * M_PI * 0  / SIZE;
+    //sample = fftOutput[0] * std::cos(angle);
+
+    return sample / 6;
+}
+
+
+
+	
 };
-
-
-
 
 
 struct SmittyWidget : ModuleWidget {
