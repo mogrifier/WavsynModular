@@ -96,10 +96,7 @@ struct Smitty : Module {
 			//shaper += abs(inputs[SHAPECV_INPUT].getVoltage() / 5);
 			//modify with knob
 			//float modifier = params[SHAPE_PARAM].getValue() / 2;
-
-
 			shaper += abs(inputs[SHAPECV_INPUT].getVoltage() / 5) * ( params[SHAPE_PARAM].getValue() / 2);
-
 		}
 		else{
 			//read param knob (range is 0 - 2 so need to divide or use abs)
@@ -141,16 +138,19 @@ struct Smitty : Module {
 		if (circularBufferFull) {
 
 			//convert circularBuffer to linear ordered buffer and pass to FFT. Uses two step copy
+
 			//from index to end becomes the beginning
-			std::memcpy(linearBuffer, &circularBuffer[index], (SIZE - index) * sizeof(float));
+			//std::memcpy(linearBuffer, &circularBuffer[index], (SIZE - index) * sizeof(float));
 			//from beggining to index becomes the end
-			std::memcpy(linearBuffer + (SIZE - index), &circularBuffer[0], index * sizeof(float));
+			//std::memcpy(linearBuffer + (SIZE - index), &circularBuffer[0], index * sizeof(float));
 
 			//remove the DC offset
-			removeDCOffset(linearBuffer);
+			//removeDCOffset(linearBuffer);
+
+			removeDCOffset(circularBuffer);
 
 			//compute the ordered FFT. output include real and complex data
-			outFFT.rfft(linearBuffer, fftOutput);
+			outFFT.rfft(circularBuffer, fftOutput);
 
 			attenuate(fftOutput);
 
@@ -163,7 +163,6 @@ struct Smitty : Module {
 			//recreating the sound using inverse FFT with oversampling makes a HUGE difference in a good way
 			outFFT.irfft(fftOutput, antiAliased);
 
-			//progress but still sounds a little shaky
 			audio1 = antiAliased[0]/SIZE;
 			//audio1 = recreate();
 
@@ -229,7 +228,19 @@ void attenuate(float * data){
 			//}
 		}	
 
+		//remove the low frequency data with removing first two data points
+		for (int i = 2; i < 5; i++) {
 
+			//if (fftOutput[2 * i] > 0){
+				//real
+				data[2 * i] = 0; //fftOutput[2 * i] * 0.1f;
+			//}
+			//if (fftOutput[2 * i + 1] > 0){
+				//complex
+				data[2 * i + 1] = 0; //fftOutput[2 * i + 1] * 0.1f;
+			//}
+		}	
+		
 	}
 }
 
