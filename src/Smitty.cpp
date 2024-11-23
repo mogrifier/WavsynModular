@@ -152,7 +152,7 @@ struct Smitty : Module {
 			//compute the ordered FFT. output include real and complex data
 			outFFT.rfft(linearBuffer, fftOutput);
 
-			//attenuate(fftOutput);
+			attenuate(fftOutput);
 
 			/**
 			 * attenuate and recreate do not work together. attenuate is for use with ifft, not recreate.
@@ -217,7 +217,7 @@ void attenuate(float * data){
 		//calculate bin width in Hz
 		float f = (48000 / SIZE) * i;
 		//attenuate signals
-		if (f >= 40000 ) {
+		if (f >= 2000 ) {
 
 			//if (fftOutput[2 * i] > 0){
 				//real
