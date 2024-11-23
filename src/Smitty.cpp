@@ -78,7 +78,7 @@ struct Smitty : Module {
 
 		//the values are going out of range- becoming inf and nan. That is cause of instability so if freq changes, reset initial conditions
 		if (freq != oldFreq) {
-			//y1 = 1.f;
+			y1 = 1.f;
 			shaper = 1.f;
 			//yq = 1.f;
 			//myq = 1.f;
@@ -152,7 +152,7 @@ struct Smitty : Module {
 			//compute the ordered FFT. output include real and complex data
 			outFFT.rfft(linearBuffer, fftOutput);
 
-			attenuate(fftOutput);
+			//attenuate(fftOutput);
 
 			/**
 			 * attenuate and recreate do not work together. attenuate is for use with ifft, not recreate.
@@ -164,7 +164,7 @@ struct Smitty : Module {
 			outFFT.irfft(fftOutput, antiAliased);
 
 			//progress but still sounds a little shaky
-			audio1 = antiAliased[0]/800;
+			audio1 = antiAliased[0]/SIZE;
 			//audio1 = recreate();
 
 			//filter based on last sample. low pass filter. CURRENTLY BROKE. CAUSE UNKNOWN. has to do with buffer fill.
@@ -212,17 +212,12 @@ float rcFilter(float in, float lastOut, float fc, float fs) {
  * designed to drop high frequencies. works on fft output array.
  */
 void attenuate(float * data){ 			
-	//bandlimit the signal by setting everything above a certain point to zero, use memcpy to zero it.
-	//std::memcpy(fftOutput + SIZE/2, empty, SIZE / 2 * sizeof(float));
-
-	//fftOutput[0] = -500;
-	//fftOutput[1] = 0; //fftOutput[1] * 0.05f;
-
+	//bandlimit the signal by setting everything above a certain point to zero
 	for (int i = 2; i < SIZE * 2; i+=2){
 		//calculate bin width in Hz
-		float f = (48000 / SIZE) * i/2;
+		float f = (48000 / SIZE) * i;
 		//attenuate signals
-		if (f >= 8000 ) {
+		if (f >= 40000 ) {
 
 			//if (fftOutput[2 * i] > 0){
 				//real
