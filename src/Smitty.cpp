@@ -2,6 +2,25 @@
 
 using namespace math;
 
+//use a structure for performing the FFT operations. This avoids callling the FFT constructor in the process loop.
+struct FFTFilter {
+
+	const int SIZE = 2048;
+	dsp::RealFFT fft;
+
+	FFTFilter() : fft(SIZE) {}
+
+	void forwardFFT(float * input, float * output){
+		fft.rfft(input, output);
+	}
+
+	void reverseFFT(float * input, float * output){
+		fft.irfft(input, output);
+	}
+
+
+};
+
 struct Smitty : Module {
 	enum ParamId {
 		SHAPE_PARAM,
@@ -52,6 +71,8 @@ struct Smitty : Module {
 	const int CUTOFF = 8000;
 	float lastSample = 0.f;
 
+	FFTFilter myFFT;
+
 	Smitty(){
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
 		configParam(SHAPE_PARAM, 0.f, 2.f, 0.f, "Add harmonics");
@@ -64,7 +85,6 @@ struct Smitty : Module {
 
 	void process(const ProcessArgs& args) override {
 
-		dsp::RealFFT outFFT(SIZE);
 		//Smith VCO approach
 		cv = inputs[VOCT_INPUT].getVoltage();
 			
@@ -150,7 +170,7 @@ struct Smitty : Module {
 			removeDCOffset(circularBuffer);
 
 			//compute the ordered FFT. output include real and complex data
-			outFFT.rfft(circularBuffer, fftOutput);
+			myFFT.forwardFFT(circularBuffer, fftOutput);
 
 			attenuate(fftOutput);
 
@@ -161,7 +181,7 @@ struct Smitty : Module {
 			//compute inverse FFT to get one sample. Presumably without any aliasing components
 
 			//recreating the sound using inverse FFT with oversampling makes a HUGE difference in a good way
-			outFFT.irfft(fftOutput, antiAliased);
+			myFFT.reverseFFT(fftOutput, antiAliased);
 
 			audio1 = antiAliased[0]/SIZE;
 			//audio1 = recreate();
