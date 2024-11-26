@@ -5,10 +5,9 @@ using namespace math;
 //use a structure for performing the FFT operations. This avoids callling the FFT constructor in the process loop.
 struct FFTFilter {
 
-	const int SIZE = 2048;
 	dsp::RealFFT fft;
 
-	FFTFilter() : fft(SIZE) {}
+	FFTFilter() : fft(2048) {}
 
 	void forwardFFT(float * input, float * output){
 		fft.rfft(input, output);
@@ -51,18 +50,14 @@ struct Smitty : Module {
 	float epsilon = 0.f;
 	float audio1 = 0.f;
 	float audio2 = 0.f;
-	bool skip = false;
-	int skipCount = 0;
-	const int MAXSKIP = 25;
 
 	//for buffers and FFT- should run 2048 since no real change in performance and can get better waveform apporx, if doing fft at all
 	static const int SIZE = 2048;
 	static const int LIMIT = 200;
-	alignas(16) float circularBuffer[SIZE]{0};
+	alignas(16) float circularBuffer[SIZE]{};
 	alignas(16) float linearBuffer[SIZE] = {};
 	alignas(16) float fftOutput[SIZE * 2] = {};
 	int index = 0;
-	int count = 0;
 	int circularIndex = 0;
 	bool circularBufferFull = false;
 	float original = 0.f;
@@ -99,11 +94,9 @@ struct Smitty : Module {
 		//the values are going out of range- becoming inf and nan. That is cause of instability so if freq changes, reset initial conditions
 		if (freq != oldFreq) {
 			y1 = 1.f;
-			shaper = 1.f;
+			shaper = 0.5f;
 			//yq = 1.f;
 			//myq = 1.f;
-			//skip = true;
-
 			epsilon = 0.f;
 		}
 
@@ -116,7 +109,7 @@ struct Smitty : Module {
 			//shaper += abs(inputs[SHAPECV_INPUT].getVoltage() / 5);
 			//modify with knob
 			//float modifier = params[SHAPE_PARAM].getValue() / 2;
-			shaper += abs(inputs[SHAPECV_INPUT].getVoltage() / 5) * ( params[SHAPE_PARAM].getValue() / 2);
+			shaper += (inputs[SHAPECV_INPUT].getVoltage() / 5) * (params[SHAPE_PARAM].getValue() / 2);
 		}
 		else{
 			//read param knob (range is 0 - 2 so need to divide or use abs)
@@ -133,82 +126,88 @@ struct Smitty : Module {
 		audio1 = 5.f * sin(y1);
 		audio2 = 5.f * sin(yq);
 
-		original = audio1;
-		//fill array but perform oversampling (interpolate an extra sample every cycle)
+		//circularBuffer[index] is always latest sample and "end" of the buffer.
 		circularBuffer[index++] = audio1;
+		//DEBUG("audio = %f, array value = %f, index = %i", audio1, circularBuffer[index - 1], index  );
 
-		/**
-		oversample = (circularBuffer[index] + original) / 2;
-		circularBuffer[index + 1 ] = oversample;
-		circularBuffer[index + 2] = audio1;
-		//increment index by two
-		index+=2;
-		*/
-
-
-
-		//this creates a circular circularBuffer that just keeps filling with latest data
+		//DEBUG("**index = %f", shaper);
+		//this creates a  circularBuffer that just keeps filling with latest data
+		//DEBUG("index = %i", index);
 		if (index >= SIZE) {
 			index = 0;
 			circularBufferFull = true;
 		}
 
-		//circular buffer has two parts. Their order needs to be flipped to put in time linear order
-		//current index is the start of the new array  since it was already incremented (it has the oldest data)
-		if (circularBufferFull) {
+		//std::memcpy(linearBuffer, &circularBuffer[0], SIZE * sizeof(float));
 
-			//convert circularBuffer to linear ordered buffer and pass to FFT. Uses two step copy
+		if (params[SHAPE_PARAM].getValue() > 1 && circularBufferFull) {
 
+			//I DO NOT linearize the buffer since it has no audible effecg if I just use the circular one
 			//from index to end becomes the beginning
-			//std::memcpy(linearBuffer, &circularBuffer[index], (SIZE - index) * sizeof(float));
+			std::memcpy(linearBuffer, &circularBuffer[index], (SIZE - index) * sizeof(float));
 			//from beggining to index becomes the end
-			//std::memcpy(linearBuffer + (SIZE - index), &circularBuffer[0], index * sizeof(float));
-
+			std::memcpy(linearBuffer + (SIZE - index), &circularBuffer[0], index * sizeof(float));
 			//remove the DC offset
-			//removeDCOffset(linearBuffer);
-
-			removeDCOffset(circularBuffer);
-
+			removeDCOffset(linearBuffer);
 			//compute the ordered FFT. output include real and complex data
-			myFFT.forwardFFT(circularBuffer, fftOutput);
+			myFFT.forwardFFT(linearBuffer, fftOutput);
+			//attenuate(fftOutput);
 
-			attenuate(fftOutput);
-
-			/**
+			/*
 			 * attenuate and recreate do not work together. attenuate is for use with ifft, not recreate.
 			 */
 
 			//compute inverse FFT to get one sample. Presumably without any aliasing components
 
 			//recreating the sound using inverse FFT with oversampling makes a HUGE difference in a good way
+
+			//change DC offset
+			fftOutput[0] = fftOutput[0] * 0.8;
 			myFFT.reverseFFT(fftOutput, antiAliased);
 
-			audio1 = antiAliased[0]/SIZE;
+			audio1 = antiAliased[0]/(SIZE * 0.8);
 			//audio1 = recreate();
 
 			//filter based on last sample. low pass filter. CURRENTLY BROKE. CAUSE UNKNOWN. has to do with buffer fill.
 			//audio1 = rcFilter(audio1, lastSample, CUTOFF, args.sampleRate);
 		}
 
-		
+		//circular buffer is being changed in above code, so I make a copy then copy it back
+		//std::memcpy(circularBuffer, &linearBuffer[0], SIZE * sizeof(float));
 
-		//output will be original sample for first 1024 at startup; after that will be the antialiased output
-		outputs[AUDIO1_OUTPUT].setVoltage(audio1);
+		//save the modified sample back to the buffer - index was already advanced so save to index -1
+		circularBuffer[index - 1] = audio1;
+
+		//output will be original sample for first SIZE samples at startup; after that will be original or attenuated
+		outputs[AUDIO1_OUTPUT].setVoltage(circularBuffer[index - 1]);
 		//outputs are different and complimentary- best in stereo!
-		outputs[AUDIO2_OUTPUT].setVoltage(audio2);
+		
+		//DEBUG("buffer = %f", circularBuffer[index]);
+				
+		outputs[AUDIO2_OUTPUT].setVoltage(circularBuffer[abs(index - 1024) % SIZE]);
+		//DEBUG("buffer = %f", circularBuffer[abs(index - 100) % SIZE]);
 
 		oldFreq = freq;
-
-		lastSample = audio1;
 	}
 
 
 void dumpBuffer(float * buffer, int size){
 	//debug output
 	for (int i = 0; i < size; i++){
-		DEBUG("%f", buffer[i]);
+		DEBUG("index = %i value = %f", i, buffer[i]);
 	}
 }
+
+
+bool compareArrays(const float* arr1, const float* arr2, size_t size, float epsilon = 1e-3) {
+    for (size_t i = 0; i < size; ++i) {
+        if (std::fabs(arr1[i] - arr2[i]) > epsilon) {
+            return false;
+        }
+    }
+    return true;
+}
+
 
 // Function to compute a single time-domain sample from FFT data ignoring complex values
 
@@ -232,11 +231,12 @@ float rcFilter(float in, float lastOut, float fc, float fs) {
  */
 void attenuate(float * data){ 			
 	//bandlimit the signal by setting everything above a certain point to zero
-	for (int i = 2; i < SIZE * 2; i+=2){
+
+	for (int i = 2; i < SIZE; i+=2){
 		//calculate bin width in Hz
-		float f = (48000 / SIZE) * i;
+		//float f = (48000 / SIZE) * i;
 		//attenuate signals
-		if (f >= 2000 ) {
+		if (i >= 1624 ) {
 
 			//if (fftOutput[2 * i] > 0){
 				//real
@@ -272,16 +272,35 @@ float recreate() {
     float sample = 0.f;
     float angle;
 	//cosine of real component; sine of imaginary component
-    for (int k = 10; k < 110; k+=2) {
+	int N = SIZE * 2;
+	alignas(16) float signal[SIZE] = {};
+
+	for (int n = 0; n < N; n++) {  
+		sample = 0.f;
+		for (int k = 0; k < N; k+=2) { 
+			angle = 2 * M_PI * k / N; 
+			sample += fftOutput[k] * cos(angle) - fftOutput[k + 1] * sin(angle); 
+		}
+		signal[n] = sample;
+	}
+
+/*
+    for (int k = 2; k < SIZE; k+=2) {
         angle = 2 * M_PI * k  / SIZE;
-		sample += (fftOutput[k] * cos(angle)+ fftOutput[k + 1] * sin(angle)) - fftOutput[0];
+		//sample += (fftOutput[k] * cos(angle) + fftOutput[k + 1] * sin(angle));// - fftOutput[0];
+//sample += fftOutput[k] * cos(angle) - fftOutput[0];
+sample += fftOutput[k + 1] * sin(angle);// - fftOutput[0];
+
 		//horrible to take magnitude pow(pow(fftOutput[k] * cos(angle), 2) + pow(fftOutput[k + 1] * sin(angle), 2), 0.5f);
     }
-
-    return sample / 100;
+	*/
+	float result = signal[0];
+    return result; // /SIZE;
 }
 
-
+/*
+Changes all elements of circular buffer.
+*/
 void removeDCOffset(float * buffer) {
     float sum = 0.f;
     for (int i = 0; i < SIZE; ++i) {
