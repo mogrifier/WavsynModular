@@ -30,6 +30,7 @@ struct Smitty : Module {
 	float oldFreq = 261.3f;
 	float omegaT = 0.f;
 	float epsilon = 0.f;
+	float ampMod = 0.f;
 
 	Smitty(){
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -57,9 +58,10 @@ struct Smitty : Module {
 		//the values are going out of range- becoming inf and nan. That is cause of instability so if freq changes, reset initial conditions
 		if (freq != oldFreq) {
 			y1 = 1.f;
-			shaper = 1.f;
-			yq = 1.f;
-			myq = 1.f;
+			shaper = 0.5f;
+			//yq = 1.f;
+			//myq = 1.f;
+			epsilon = 0.f;
 		}
 
 		yq = myq - epsilon * shaper;
@@ -68,7 +70,10 @@ struct Smitty : Module {
 		//if connected, use the CV input. sounds very cool. else use manual setting
 		if (inputs[SHAPECV_INPUT].isConnected()){
 			//read cv input
-			shaper += abs(inputs[SHAPECV_INPUT].getVoltage() / 5);
+			//shaper += abs(inputs[SHAPECV_INPUT].getVoltage() / 5);
+			//modify with knob
+			//float modifier = params[SHAPE_PARAM].getValue() / 2;
+			shaper += (inputs[SHAPECV_INPUT].getVoltage() / 5) * (params[SHAPE_PARAM].getValue() / 2);
 		}
 		else{
 			//read param knob (range is 0 - 2 so need to divide or use abs)
@@ -83,8 +88,15 @@ struct Smitty : Module {
 		shaper = y1;
 
 		outputs[AUDIO1_OUTPUT].setVoltage(5.f * sin(y1));
+
+		if (params[SHAPE_PARAM].getValue() > 1){
+			ampMod = 4.73;
+		}
+		else {
+			ampMod = 4.82;
+		}
 		//outputs are different and complimentary- best in stereo!
-		outputs[AUDIO2_OUTPUT].setVoltage(5.f * sin(yq));
+		outputs[AUDIO2_OUTPUT].setVoltage(ampMod * sin(yq));
 
 		oldFreq = freq;
 	}
