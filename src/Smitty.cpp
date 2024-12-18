@@ -34,8 +34,8 @@ struct Smitty : Module {
 
 	Smitty(){
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configParam(SHAPE_PARAM, 0.f, 2.f, 0.f, "Add harmonics. Aliasing at high values");
-		configInput(SHAPECV_INPUT, "FM tones with square or saw LFO.");
+		configParam(SHAPE_PARAM, 0.f, 2.f, 0.f, "Add harmonics");
+		configInput(SHAPECV_INPUT, "Aliasing");
 		configInput(VOCT_INPUT, "V/OCT");
 		configOutput(AUDIO1_OUTPUT, "Main");
 		configOutput(AUDIO2_OUTPUT, "Quadrature");
@@ -100,9 +100,9 @@ struct SmittyWidget : ModuleWidget {
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(20.32, 27.347)), module, Smitty::SHAPE_PARAM));
+		addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(20.32, 28.347)), module, Smitty::SHAPE_PARAM));
 
-		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(20.32, 40.236)), module, Smitty::SHAPECV_INPUT));
+		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(20.32, 46.236)), module, Smitty::SHAPECV_INPUT));
 		addInput(createInputCentered<PJ301MPort>(mm2px(Vec(20.32, 83.363)), module, Smitty::VOCT_INPUT));
 
 		addOutput(createOutputCentered<PJ301MPort>(mm2px(Vec(10.92, 105.833)), module, Smitty::AUDIO1_OUTPUT));
