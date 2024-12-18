@@ -21,10 +21,10 @@ struct Smitty : Module {
 		LIGHTS_LEN
 	};
 
-	float y1 = 1.f;
+	float mainOut = 1.f;
 	float shaper = 1.f;
 	float yq = 1.f;
-	float myq = 1.f;
+	float oldYQ = 1.f;
 	float cv = 1.f;
 	float freq = 261.3f;
 	float oldFreq = 261.3f;
@@ -34,19 +34,17 @@ struct Smitty : Module {
 
 	Smitty(){
 		config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-		configParam(SHAPE_PARAM, 0.f, 2.f, 0.f, "Add harmonics");
-		configInput(SHAPECV_INPUT, "Odd FM tones with square or saw LFO");
+		configParam(SHAPE_PARAM, 0.f, 2.f, 0.f, "Add harmonics. Aliasing at high values");
+		configInput(SHAPECV_INPUT, "FM tones with square or saw LFO.");
 		configInput(VOCT_INPUT, "V/OCT");
-		configOutput(AUDIO1_OUTPUT, "audio 1");
-		configOutput(AUDIO2_OUTPUT, "audio 2");
+		configOutput(AUDIO1_OUTPUT, "Main");
+		configOutput(AUDIO2_OUTPUT, "Quadrature");
 	}
 
 
 	void process(const ProcessArgs& args) override {
-
 		//Smith VCO approach
 		cv = inputs[VOCT_INPUT].getVoltage();
-			
 		float pitch = 1;
 		pitch = pitch + cv;
 		//base frequency times a scaling term
@@ -57,22 +55,17 @@ struct Smitty : Module {
 
 		//the values are going out of range- becoming inf and nan. That is cause of instability so if freq changes, reset initial conditions
 		if (freq != oldFreq) {
-			y1 = 1.f;
+			mainOut = 1.f;
 			shaper = 0.5f;
-			//yq = 1.f;
-			//myq = 1.f;
 			epsilon = 0.f;
 		}
 
-		yq = myq - epsilon * shaper;
+		yq = oldYQ - epsilon * mainOut;
 
 		//modify shaper using a param or CV
 		//if connected, use the CV input. sounds very cool. else use manual setting
 		if (inputs[SHAPECV_INPUT].isConnected()){
 			//read cv input
-			//shaper += abs(inputs[SHAPECV_INPUT].getVoltage() / 5);
-			//modify with knob
-			//float modifier = params[SHAPE_PARAM].getValue() / 2;
 			shaper += (inputs[SHAPECV_INPUT].getVoltage() / 5) * (params[SHAPE_PARAM].getValue() / 2);
 		}
 		else{
@@ -80,24 +73,15 @@ struct Smitty : Module {
 			shaper += params[SHAPE_PARAM].getValue(); 
 		}
 
-		//LFO saw and square cause crazy tones when used as CV input to the shape control
-		y1 = epsilon * yq + shaper;
-
-		//save old values
-		myq = yq;
-		shaper = y1;
-
-		outputs[AUDIO1_OUTPUT].setVoltage(5.f * sin(y1));
-
-		if (params[SHAPE_PARAM].getValue() > 1){
-			ampMod = 4.73;
-		}
-		else {
-			ampMod = 4.82;
-		}
+		//LFO saw and square cause crazy tones when used as CV input to the shape control. Aliasing, too.
+		mainOut = epsilon * yq + shaper;
+		outputs[AUDIO1_OUTPUT].setVoltage(5.f * sin(mainOut));
 		//outputs are different and complimentary- best in stereo!
-		outputs[AUDIO2_OUTPUT].setVoltage(ampMod * sin(yq));
-
+		outputs[AUDIO2_OUTPUT].setVoltage(5.f * sin(yq));
+		//save old values
+		oldYQ = yq;
+		//must do this or you get serious glitch mode behavior
+		shaper = mainOut;
 		oldFreq = freq;
 	}
 };
