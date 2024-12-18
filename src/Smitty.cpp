@@ -65,6 +65,7 @@ struct Smitty : Module {
 	float oversample = 0.f;
 	const int CUTOFF = 8000;
 	float lastSample = 0.f;
+	static const int BUCKETS = 100;
 
 	FFTFilter myFFT;
 
@@ -140,7 +141,7 @@ struct Smitty : Module {
 
 		//std::memcpy(linearBuffer, &circularBuffer[0], SIZE * sizeof(float));
 
-		if (params[SHAPE_PARAM].getValue() > 1 && circularBufferFull) {
+		if (circularBufferFull) {
 
 			//I DO NOT linearize the buffer since it has no audible effecg if I just use the circular one
 			//from index to end becomes the beginning
@@ -151,7 +152,8 @@ struct Smitty : Module {
 			removeDCOffset(linearBuffer);
 			//compute the ordered FFT. output include real and complex data
 			myFFT.forwardFFT(linearBuffer, fftOutput);
-			//attenuate(fftOutput);
+			attenuate(fftOutput);
+
 
 			/*
 			 * attenuate and recreate do not work together. attenuate is for use with ifft, not recreate.
@@ -162,11 +164,16 @@ struct Smitty : Module {
 			//recreating the sound using inverse FFT with oversampling makes a HUGE difference in a good way
 
 			//change DC offset
-			fftOutput[0] = fftOutput[0] * 0.8;
+			//fftOutput[0] = fftOutput[0] * 0.8;
 			myFFT.reverseFFT(fftOutput, antiAliased);
 
-			audio1 = antiAliased[0]/(SIZE * 0.8);
-			//audio1 = recreate();
+
+			//each inverseFFT sample MUST be divided by SIZE
+
+			//compareFFT(fftOutput, antiAliased);
+
+			audio1 = antiAliased[SIZE - 1]/SIZE;
+			//audio1 = recreate(args.sampleTime);
 
 			//filter based on last sample. low pass filter. CURRENTLY BROKE. CAUSE UNKNOWN. has to do with buffer fill.
 			//audio1 = rcFilter(audio1, lastSample, CUTOFF, args.sampleRate);
@@ -235,8 +242,8 @@ void attenuate(float * data){
 	for (int i = 2; i < SIZE; i+=2){
 		//calculate bin width in Hz
 		//float f = (48000 / SIZE) * i;
-		//attenuate signals
-		if (i >= 1624 ) {
+		//attenuate signals- the more you attenuate, the more inacurate the result is
+		if (i >= 100 ) {
 
 			//if (fftOutput[2 * i] > 0){
 				//real
@@ -249,7 +256,7 @@ void attenuate(float * data){
 		}	
 
 		//remove the low frequency data with removing first two data points
-		for (int i = 2; i < 5; i++) {
+		for (int i = 2; i < 10; i++) {
 
 			//if (fftOutput[2 * i] > 0){
 				//real
@@ -264,38 +271,57 @@ void attenuate(float * data){
 	}
 }
 
+
+
+void compareFFT(float * forward, float * backward){
+
+	for (int i = 0; i < 100; i++)
+	{
+		DEBUG("forward = %f",forward[i]);
+	}
+	for (int i = 0; i < 100; i++)
+	{
+		DEBUG("backward = %f, backward/SIZE = %f, original = %f", backward[i], backward[i]/SIZE, linearBuffer[i]);
+	}
+	exit(0);
+}
+
+
 /*
 recreate original signal from fft data
 */
-float recreate() {
+float recreate(float period) {
 
+
+	float totalAmp = 0.f;
     float sample = 0.f;
-    float angle;
-	//cosine of real component; sine of imaginary component
-	int N = SIZE * 2;
-	alignas(16) float signal[SIZE] = {};
+	float phaseData[BUCKETS]{0};
+	float sampleData[BUCKETS]{0};
+	float phaseInc = period/SIZE;
 
-	for (int n = 0; n < N; n++) {  
-		sample = 0.f;
-		for (int k = 0; k < N; k+=2) { 
-			angle = 2 * M_PI * k / N; 
-			sample += fftOutput[k] * cos(angle) - fftOutput[k + 1] * sin(angle); 
-		}
-		signal[n] = sample;
+	//calculate harmonic freq, phase data, and the sample
+
+//what if the phase data is in the fft data?? first value is amplitude, second is phase. No phase calculation needed.
+	int count = 0;
+
+	for (int i = 2; i < BUCKETS * 2; i+=2){
+		//each harmonic gets its own phase value
+		//phaseData[i] = fftOutput[i + 1];
+		
+		sampleData[count++] = std::sin(2.f * M_PI * fftOutput[i + 1]);
+		totalAmp += fftOutput[i];
+		//DEBUG("sample = %f", sampleData[i]);
+		//DEBUG("phase = %f", phaseData[i]);
 	}
 
-/*
-    for (int k = 2; k < SIZE; k+=2) {
-        angle = 2 * M_PI * k  / SIZE;
-		//sample += (fftOutput[k] * cos(angle) + fftOutput[k + 1] * sin(angle));// - fftOutput[0];
-//sample += fftOutput[k] * cos(angle) - fftOutput[0];
-sample += fftOutput[k + 1] * sin(angle);// - fftOutput[0];
-
-		//horrible to take magnitude pow(pow(fftOutput[k] * cos(angle), 2) + pow(fftOutput[k + 1] * sin(angle), 2), 0.5f);
-    }
-	*/
-	float result = signal[0];
-    return result; // /SIZE;
+	count = 0;
+	//apply amplitude values
+	for (int i = 2; i < BUCKETS * 2; i+=2){
+		sample += sampleData[count++] * fftOutput[i];
+	}
+	
+	//normalize the total using the norming value based on the sum of the amplitudes (this is like removing DC Offset I think)
+	return sample / 1000; //totalAmp;
 }
 
 /*
