@@ -47,7 +47,8 @@
       "name": "Smitty",
       "description": "VCO with dual sine-like outputs plus a shape control for adding harmonics and aliasing",
       "tags": [
-        "oscillator"
+        "oscillator",
+        "noise"
       ]
     }
   ]
